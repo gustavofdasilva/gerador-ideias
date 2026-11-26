@@ -65,7 +65,7 @@ func TestMigrateThenStats(t *testing.T) {
 		t.Fatalf("stats: code=%d stderr=%q", code, errOut)
 	}
 	for _, want := range []string{
-		"Config:  embutido", "Esquema: versão 4", "items", "daily_terms", "ai_usage",
+		"Config:  embutido", "Esquema: versão 5", "items", "daily_terms", "ai_usage",
 		"nenhuma coleta registrada", "IA no mês: 0 tokens (limite semanal: 500.000)",
 		"GITHUB_TOKEN        ok", "BSKY_HANDLE         não definido",
 	} {
@@ -91,8 +91,8 @@ func TestNotImplementedAndUsage(t *testing.T) {
 		{[]string{"report", "--week", "2026-60"}, exitUsage, "não existe"},
 		{[]string{"report", "--week", "2025-53"}, exitUsage, "não existe"},
 		{[]string{"report", "--week", "48"}, exitUsage, "use AAAA-WW"},
-		{[]string{"export", "--week", "2026-48"}, exitError, "não implementado"},
-		{[]string{"import", "--week", "2026-48", "resposta.json"}, exitError, "não implementado"},
+		{[]string{"export", "--week", "2026-48", "--db", "x.db"}, exitOK, "Pacote do modo manual"},
+		{[]string{"import", "--week", "2026-48", "--db", "x.db", "resposta.json"}, exitError, "resposta.json"},
 		{[]string{"import"}, exitUsage, "exatamente um arquivo"},
 		{[]string{"stats", "--help"}, exitOK, "Uso: ideias stats"},
 		{[]string{"migrate", "--bogus"}, exitUsage, "flag provided but not defined"},

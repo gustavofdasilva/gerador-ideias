@@ -99,13 +99,13 @@ func TestReportWritesFileAndSends(t *testing.T) {
 	t.Setenv(secrets.TelegramChatID, "42")
 	out.Reset()
 	errb.Reset()
-	if code := app.Run(ctx, []string{"report", "--db", dbPath}); code != exitOK {
+	if code := app.Run(ctx, []string{"report", "--no-ai", "--db", dbPath}); code != exitOK {
 		t.Fatalf("report: code=%d err=%s", code, errb.String())
 	}
 	if tg.messages != 1 || !strings.Contains(tg.docs["2026-48.md"], "# Ideias — semana 2026-48") {
 		t.Errorf("Telegram: mensagens=%d docs=%v", tg.messages, tg.docs)
 	}
-	if !strings.Contains(errb.String(), "IA ainda não está implementada") || !strings.Contains(out.String(), "enviado pelo Telegram") {
+	if !strings.Contains(out.String(), "enviado pelo Telegram") {
 		t.Errorf("out=%q err=%q", out.String(), errb.String())
 	}
 

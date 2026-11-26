@@ -15,3 +15,6 @@ env
 *.db-wal
 *.db-shm
 *.db-journal
+
+# Pacotes do modo manual (temporários; o conteúdo já está no banco)
+/export/

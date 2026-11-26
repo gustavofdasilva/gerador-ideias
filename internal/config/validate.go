@@ -118,6 +118,9 @@ func (v *validator) report() {
 	if strings.TrimSpace(r.Dir) == "" {
 		v.add("report.dir vazio")
 	}
+	if strings.TrimSpace(r.ExportDir) == "" {
+		v.add("report.export_dir vazio")
+	}
 	v.atLeastOne("report.top_candidates", r.TopCandidates)
 	v.atLeastOne("report.top_keywords", r.TopKeywords)
 	v.atLeastOne("report.top_brands", r.TopBrands)
@@ -150,6 +153,20 @@ func (v *validator) ai() {
 	}
 	if a.WeeklyTokenLimit <= 0 {
 		v.add("ai.weekly_token_limit precisa ser maior que zero")
+	}
+	v.atLeastOne("ai.max_items", a.MaxItems)
+	v.atLeastOne("ai.batch_size", a.BatchSize)
+	v.atLeastOne("ai.max_clusters", a.MaxClusters)
+	v.atLeastOne("ai.score_top", a.ScoreTop)
+	v.atLeastOne("ai.timeout_seconds", a.TimeoutSeconds)
+	if a.ItemChars < 100 {
+		v.add("ai.item_chars precisa ser pelo menos 100")
+	}
+	if a.ManualPartChars < 10000 {
+		v.add("ai.manual_part_chars precisa ser pelo menos 10000")
+	}
+	if a.PenaltyPoints < 0 || a.PenaltyPoints > 100 || a.BonusPoints < 0 || a.BonusPoints > 100 {
+		v.add("ai.penalty_points e ai.bonus_points precisam ir de 0 a 100")
 	}
 }
 

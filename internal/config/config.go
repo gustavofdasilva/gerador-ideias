@@ -66,7 +66,9 @@ const BrandPlaceholder = "{marca}"
 
 // Report controla o relatório semanal (design, seção 7).
 type Report struct {
-	Dir           string `toml:"dir"` // pasta dos AAAA-WW.md ("~" é expandido)
+	Dir string `toml:"dir"` // pasta dos AAAA-WW.md ("~" é expandido)
+	// ExportDir: pasta dos pacotes do modo manual (Claude web).
+	ExportDir     string `toml:"export_dir"`
 	TopCandidates int    `toml:"top_candidates"`
 	TopKeywords   int    `toml:"top_keywords"`
 	TopBrands     int    `toml:"top_brands"`
@@ -76,6 +78,9 @@ type Report struct {
 
 // ResolvedDir devolve Dir com "~" expandido.
 func (r Report) ResolvedDir() (string, error) { return ExpandHome(r.Dir) }
+
+// ResolvedExportDir devolve ExportDir com "~" expandido.
+func (r Report) ResolvedExportDir() (string, error) { return ExpandHome(r.ExportDir) }
 
 // Keywords controla a contagem de palavras-chave (n-gramas) em daily_terms.
 type Keywords struct {
@@ -108,6 +113,24 @@ type AI struct {
 	GroupModel       string `toml:"group_model"`
 	ScoreModel       string `toml:"score_model"`
 	WeeklyTokenLimit int64  `toml:"weekly_token_limit"`
+
+	// MaxItems: candidatos da semana enviados à IA (os de maior pain_score).
+	MaxItems int `toml:"max_items"`
+	// BatchSize: candidatos por chamada de agrupamento.
+	BatchSize int `toml:"batch_size"`
+	// ItemChars: caracteres de texto de cada candidato enviados à IA.
+	ItemChars int `toml:"item_chars"`
+	// MaxClusters: clusters existentes mostrados à IA (os vistos mais recentemente).
+	MaxClusters int `toml:"max_clusters"`
+	// ScoreTop: quantas dores são pontuadas por semana (design: ~20).
+	ScoreTop int `toml:"score_top"`
+	// PenaltyPoints e BonusPoints ajustam a nota final (0 a 100).
+	PenaltyPoints int `toml:"penalty_points"`
+	BonusPoints   int `toml:"bonus_points"`
+	// TimeoutSeconds: tempo máximo de cada chamada (modelos gratuitos são lentos).
+	TimeoutSeconds int `toml:"timeout_seconds"`
+	// ManualPartChars: tamanho máximo de cada parte do candidatos.md do modo manual.
+	ManualPartChars int `toml:"manual_part_chars"`
 }
 
 // Collect controla a janela de coleta (design, 5.1 passo 1).

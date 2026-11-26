@@ -4,7 +4,7 @@ Coletor leve que roda no celular (Termux), lê conversas públicas do Hacker New
 
 O design completo fica em [docs/design.md](docs/design.md), e as fases de implementação em [docs/roadmap.md](docs/roadmap.md).
 
-> Estado atual: **F4**. `migrate`, `stats`, `collect` (Hacker News, Bluesky e GitHub Issues, com o filtro local de candidatos) e `report` sem IA, com envio pelo Telegram, funcionam. A IA do relatório e `export`/`import` chegam na F5.
+> Estado atual: **F5**. Todos os comandos funcionam: `collect` (Hacker News, Bluesky e GitHub Issues), `report` com IA via OmniRoute (ou `--no-ai`), `export`/`import` para o Claude web, `stats` e `migrate`. Falta a operação no Termux (F6).
 
 ## Compilar no PC
 
@@ -94,6 +94,33 @@ O tamanho das listas fica em `[report]` no `config.toml`.
 **Telegram:** defina `TELEGRAM_BOT_TOKEN` (do @BotFather) e `TELEGRAM_CHAT_ID`. O comando envia um resumo e o `.md` como documento.
 - Sem essas variáveis, só gera o arquivo e avisa.
 - Se o envio falhar, o arquivo continua gerado e o comando sai com código 1.
+
+## IA: OmniRoute (automático) ou Claude web (manual)
+
+O `report` sem `--no-ai` agrupa os candidatos em dores e pontua as ~20 mais relevantes com a rubrica do design (seção 6). O resultado sai na seção "Top 10 dores". Os dois modos usam os mesmos prompts de `prompts/` e o mesmo formato de resposta, então o relatório final é igual nos dois. Só muda a linha "IA:" do cabeçalho.
+
+**Automático, via OmniRoute.** O OmniRoute já roda no Termux e é infraestrutura externa: o `ideias` só consome a API dele.
+- `OMNIROUTE_BASE_URL`: o padrão é `http://localhost:20128/v1`.
+- `OMNIROUTE_API_KEY`: só se o seu OmniRoute exigir chave.
+- `[ai] group_model` e `score_model` no `config.toml`: nomes de modelo ou de combo configurados no OmniRoute.
+- `[ai] weekly_token_limit`: limite de tokens por semana. Antes de cada chamada, o custo é estimado. O uso fica em `ai_usage` e aparece no `stats`.
+
+**Fallback automático.** Se o OmniRoute estiver fora do ar, se as chamadas falharem ou se o limite de tokens não comportar a semana, nada da IA é gravado. Nesse caso o comando:
+1. gera o relatório sem IA;
+2. gera o pacote do modo manual;
+3. manda um aviso pelo Telegram.
+
+**Manual, pelo claude.ai** (sem API nenhuma):
+
+```sh
+bin/ideias export --week 2026-48          # export/2026-48/prompt.md + candidatos.md
+# no claude.ai: cole o prompt.md, anexe o(s) candidatos*.md, salve a resposta em resposta.json
+bin/ideias import --week 2026-48 resposta.json
+```
+
+O `import` aceita a resposta colada do jeito que vier, com cerca ```json e texto em volta. Se algo estiver errado, ele lista cada problema apontando o campo, por exemplo `atribuicoes[3].cluster "c99" não existe`. Dá para colar esses erros de volta no claude.ai e pedir a correção.
+
+Regerar uma semana (`report` ou `import` de novo) refaz o agrupamento daquela semana, sem duplicar clusters.
 
 ## Credenciais das fontes
 

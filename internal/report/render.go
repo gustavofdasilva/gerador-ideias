@@ -15,8 +15,8 @@ var signalNames = map[string]string{
 	"complaint": "reclamação", "churn": "cancelamento", "distribution": "distribuição",
 }
 
-// Markdown devolve o relatório no formato da seção 7 do design (sem a parte
-// de dores agrupadas, que depende da IA).
+// Markdown devolve o relatório no formato da seção 7 do design. Com as dores
+// da IA, traz o "Top 10 dores"; sem IA, os candidatos com maior pain_score.
 func (r *Report) Markdown() string {
 	var b strings.Builder
 	w := func(format string, args ...any) { fmt.Fprintf(&b, format, args...) }
@@ -27,11 +27,16 @@ func (r *Report) Markdown() string {
 	w("Período: %s a %s (UTC) · gerado em %s\n", brDate(r.First), brDate(r.Last),
 		r.GeneratedAt.Local().Format("02/01/2006 15:04"))
 
-	r.writeCandidates(w)
+	if r.WithPains {
+		r.writePains(w)
+	} else {
+		r.writeCandidates(w)
+	}
 	w("\n## Rankings\n")
 	r.writeTrends(w, "Palavras-chave em alta", "Termo", r.Keywords,
 		"Termos que mais cresceram contra a média das semanas anteriores.")
 	r.writeTrends(w, "Marcas mais citadas", "Marca", r.Brands, "")
+	r.writeNiches(w)
 	r.writeCuts(w)
 	r.writeHealth(w)
 	return b.String()
@@ -42,7 +47,11 @@ func (r *Report) collectLine() string {
 	for _, s := range r.Sources {
 		parts = append(parts, SourceNames[s.Key]+" "+fmtx.Int(s.Items))
 	}
-	return fmt.Sprintf("Coleta: %s → %s candidatos", strings.Join(parts, " · "), fmtx.Int(r.TotalCandidates))
+	line := fmt.Sprintf("Coleta: %s → %s candidatos", strings.Join(parts, " · "), fmtx.Int(r.TotalCandidates))
+	if r.WithPains {
+		line += fmt.Sprintf(" → %s dores", fmtx.Int(r.PainCount))
+	}
+	return line
 }
 
 func (r *Report) writeCandidates(w func(string, ...any)) {
@@ -165,7 +174,14 @@ func (r *Report) writeHealth(w func(string, ...any)) {
 func (r *Report) Summary() string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Ideias — semana %s\n%s\n", r.Week, r.collectLine())
-	if n := min(len(r.Candidates), 5); n > 0 {
+	if r.WithPains {
+		if n := min(len(r.Pains), 5); n > 0 {
+			b.WriteString("\nTop dores:\n")
+			for i, p := range r.Pains[:n] {
+				fmt.Fprintf(&b, "%d. %s — %d/100 (%s)\n", i+1, p.Dor, p.Score, p.Trend)
+			}
+		}
+	} else if n := min(len(r.Candidates), 5); n > 0 {
 		b.WriteString("\nTop candidatos:\n")
 		for i, c := range r.Candidates[:n] {
 			fmt.Fprintf(&b, "%d. (%s · %s) %s\n", i+1, fmtx.Decimal(c.Score, 1), SourceNames[c.Source], Excerpt(c.Text, 110))

@@ -37,6 +37,7 @@ languages = ["en"]
 min_score = 1.0
 [report]
 dir = "reports"
+export_dir = "export"
 top_candidates = 15
 top_keywords = 15
 top_brands = 15
@@ -62,6 +63,15 @@ infra = 10
 group_model = "a"
 score_model = "b"
 weekly_token_limit = 1000
+max_items = 400
+batch_size = 50
+item_chars = 500
+max_clusters = 150
+score_top = 20
+penalty_points = 15
+bonus_points = 5
+timeout_seconds = 300
+manual_part_chars = 120000
 [collect]
 initial_lookback_days = 7
 overlap_minutes = 60

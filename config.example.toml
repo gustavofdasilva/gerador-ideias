@@ -198,8 +198,28 @@ infra        = 10  # infraestrutura barata
 # Nome do modelo ou combo configurado no OmniRoute para cada etapa.
 group_model = "combo-agrupar"
 score_model = "combo-pontuar"
-# Limite de tokens (entrada + saída) por semana ISO, para preservar as cotas gratuitas.
+# Limite de tokens (entrada + saída) por semana ISO, para preservar as cotas
+# gratuitas. Antes de cada chamada, o custo é estimado; se for estourar, o
+# relatório sai sem IA e o pacote do modo manual (Claude web) é gerado.
 weekly_token_limit = 500000
+# Candidatos enviados por semana (os de maior pain_score) e por chamada.
+max_items = 400
+batch_size = 50
+# Caracteres de texto de cada candidato enviados à IA.
+item_chars = 500
+# Clusters existentes mostrados à IA para reaproveitar (os vistos mais recentemente).
+max_clusters = 150
+# Quantas dores são pontuadas por semana (as mais citadas na semana).
+score_top = 20
+# Ajustes da nota final (0 a 100): cada penalidade da rubrica tira
+# penalty_points; o bônus de concorrência soma bonus_points.
+penalty_points = 15
+bonus_points = 5
+# Tempo máximo de cada chamada, em segundos (modelos gratuitos podem ser lentos).
+timeout_seconds = 300
+# Modo manual: o candidatos.md é dividido em partes deste tamanho (caracteres)
+# para anexar no claude.ai sem estourar o limite de anexo.
+manual_part_chars = 120000
 
 # ---------------------------------------------------------------------------
 # Relatório semanal (design, seção 7)
@@ -208,6 +228,8 @@ weekly_token_limit = 500000
 # Pasta dos relatórios AAAA-WW.md, relativa à pasta onde o comando roda
 # ("~" é expandido). O F7 lê os relatórios de reports/ no repositório.
 dir = "reports"
+# Pasta dos pacotes do modo manual (Claude web): export/AAAA-WW/prompt.md e candidatos.md.
+export_dir = "export"
 # Tamanho das listas: o relatório deve ser lido em poucos minutos.
 top_candidates = 10
 top_keywords = 15

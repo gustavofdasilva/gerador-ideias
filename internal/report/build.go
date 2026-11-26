@@ -23,10 +23,13 @@ var SourceNames = map[string]string{"hn": "HN", "bsky": "Bluesky", "gh": "GitHub
 
 // Options controla o que entra no relatório.
 type Options struct {
-	Week            string // AAAA-WW
-	Now             time.Time
-	DBPath          string
-	AINote          string // linha "IA: ..." do cabeçalho
+	Week   string // AAAA-WW
+	Now    time.Time
+	DBPath string
+	AINote string // linha "IA: ..." do cabeçalho
+	// WithPains inclui as dores agrupadas e pontuadas pela IA (seção "Top 10
+	// dores"); sem isso, o relatório lista os candidatos brutos.
+	WithPains       bool
 	TopCandidates   int
 	TopKeywords     int
 	TopBrands       int
@@ -50,6 +53,11 @@ type Report struct {
 	Langs           []Count
 	Countries       []Count
 	Health          Health
+
+	WithPains bool
+	PainCount int64   // dores (clusters) com menções na semana
+	Pains     []Pain  // as mais bem pontuadas
+	Niches    []Count // Key = nicho, Items = dores, Candidates = menções
 }
 
 // Count é um recorte com itens processados e candidatos.
@@ -123,9 +131,12 @@ func Build(ctx context.Context, conn *sql.DB, o Options) (*Report, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := &Report{Week: o.Week, First: first, Last: last, GeneratedAt: o.Now, AINote: o.AINote}
+	r := &Report{Week: o.Week, First: first, Last: last, GeneratedAt: o.Now, AINote: o.AINote, WithPains: o.WithPains}
 	steps := []func(context.Context, *sql.DB, *Report, Options) error{
 		collectCounts, candidates, history, keywords, brands, health,
+	}
+	if o.WithPains {
+		steps = append(steps, pains)
 	}
 	for _, step := range steps {
 		if err := step(ctx, conn, r, o); err != nil {

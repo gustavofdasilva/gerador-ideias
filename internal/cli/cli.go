@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"gerador-ideias/internal/ai"
 	"gerador-ideias/internal/collect"
 	"gerador-ideias/internal/config"
 	"gerador-ideias/internal/db"
@@ -35,9 +36,10 @@ Uso:
 Comandos:
   collect [--source hn|bsky|gh|all]       coleta diária, filtra e agrega
   report  [--week AAAA-WW] [--no-ai] [--no-telegram]
-                                          relatório semanal em reports/, enviado pelo Telegram
+                                          relatório semanal (IA via OmniRoute) em reports/ + Telegram
   export  [--week AAAA-WW]                pacote para o Claude web (modo manual)
-  import  [--week AAAA-WW] resposta.json  importa a resposta do Claude web
+  import  [--week AAAA-WW] [--no-telegram] resposta.json
+                                          importa a resposta do Claude web e gera o relatório
   stats                                   saúde: tamanho do banco, linhas, últimas coletas
   migrate                                 aplica as migrações do banco
 
@@ -57,6 +59,8 @@ type App struct {
 	Collectors func(*env) map[string]collect.Collector
 	// Telegram, se definido, cria o cliente do Telegram (testes).
 	Telegram func(token, chatID string) *telegram.Client
+	// AIClient, se definido, cria o cliente do OmniRoute (testes).
+	AIClient func(baseURL, apiKey string, timeout time.Duration) *ai.Client
 }
 
 // Run executa a linha de comando (sem o nome do programa) e devolve o código de saída.
@@ -179,42 +183,8 @@ func (a *App) load(c *common) (*env, error) {
 
 var validSources = []string{"hn", "bsky", "gh", "all"}
 
+// errNotImplemented: nenhuma das fontes pedidas tem coletor.
 var errNotImplemented = errors.New("não implementado")
-
-func (a *App) notImplemented(cmd, phase string) error {
-	fmt.Fprintf(a.Stdout, "ideias %s: não implementado (previsto para a fase %s)\n", cmd, phase)
-	return errNotImplemented
-}
-
-func (a *App) export(_ context.Context, args []string) error {
-	fs, _ := a.newFlagSet("export", "export [--week AAAA-WW]")
-	week := fs.String("week", "", "semana ISO a exportar (padrão: a semana corrente)")
-	if err := parse(fs, args); err != nil {
-		return err
-	}
-	if fs.NArg() > 0 {
-		return usagef("argumento inesperado: %q", fs.Arg(0))
-	}
-	if err := validWeek(*week); err != nil {
-		return err
-	}
-	return a.notImplemented("export", "F5")
-}
-
-func (a *App) importCmd(_ context.Context, args []string) error {
-	fs, _ := a.newFlagSet("import", "import [--week AAAA-WW] resposta.json")
-	week := fs.String("week", "", "semana ISO da resposta (padrão: a semana corrente)")
-	if err := parse(fs, args); err != nil {
-		return err
-	}
-	if fs.NArg() != 1 {
-		return usagef("informe exatamente um arquivo de resposta (resposta.json)")
-	}
-	if err := validWeek(*week); err != nil {
-		return err
-	}
-	return a.notImplemented("import", "F5")
-}
 
 func (a *App) migrate(ctx context.Context, args []string) error {
 	fs, c := a.newFlagSet("migrate", "migrate")
