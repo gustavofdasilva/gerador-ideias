@@ -2,9 +2,11 @@ package httpx
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -153,5 +155,99 @@ func TestParseRetryAfter(t *testing.T) {
 	}
 	if d := parseRetryAfter("lixo", now); d != 0 {
 		t.Errorf("inválido: %v", d)
+	}
+}
+
+func TestGitHub403RateLimitWaitsForReset(t *testing.T) {
+	c, clk := newTestClient(0)
+	reset := clk.now.Add(40 * time.Second)
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) == 1 {
+			w.Header().Set("X-RateLimit-Remaining", "0")
+			w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(reset.Unix(), 10))
+			http.Error(w, `{"message":"API rate limit exceeded"}`, http.StatusForbidden)
+			return
+		}
+		w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	if _, err := c.GetJSON(context.Background(), srv.URL, &struct{}{}); err != nil {
+		t.Fatal(err)
+	}
+	if calls.Load() != 2 {
+		t.Fatalf("chamadas = %d", calls.Load())
+	}
+	var total time.Duration
+	for _, d := range clk.sleeps {
+		total += d
+	}
+	if total < 40*time.Second || total > 45*time.Second {
+		t.Errorf("esperou %v (%v), esperava ~41 s até o reset", total, clk.sleeps)
+	}
+}
+
+func TestExhaustedQuotaDelaysNextRequest(t *testing.T) {
+	c, clk := newTestClient(0)
+	reset := clk.now.Add(90 * time.Second)
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) == 1 {
+			// Formato do Bluesky: sem o prefixo X-.
+			w.Header().Set("RateLimit-Remaining", "0")
+			w.Header().Set("RateLimit-Reset", strconv.FormatInt(reset.Unix(), 10))
+		}
+		w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	for i := 0; i < 2; i++ {
+		if _, err := c.GetJSON(context.Background(), srv.URL, &struct{}{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if len(clk.sleeps) != 1 || clk.sleeps[0] != 90*time.Second {
+		t.Errorf("esperas = %v, esperava 90 s antes da 2ª requisição", clk.sleeps)
+	}
+}
+
+func TestRateWaitTooLongFails(t *testing.T) {
+	c, clk := newTestClient(0)
+	c.MaxRateWait = time.Minute
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-RateLimit-Remaining", "0")
+		w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(clk.now.Add(time.Hour).Unix(), 10))
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer srv.Close()
+	_, err := c.GetJSON(context.Background(), srv.URL, &struct{}{})
+	if err == nil {
+		t.Fatal("esperava erro por espera longa demais")
+	}
+	if len(clk.sleeps) != 0 {
+		t.Errorf("não deveria ter dormido: %v", clk.sleeps)
+	}
+}
+
+func TestSendJSONHeadersAndBody(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.Header.Get("Authorization") != "Bearer x" ||
+			r.Header.Get("Content-Type") != "application/json" {
+			t.Errorf("requisição: %s %v", r.Method, r.Header)
+		}
+		var in map[string]string
+		json.NewDecoder(r.Body).Decode(&in)
+		w.Write([]byte(`{"echo":"` + in["a"] + `"}`))
+	}))
+	defer srv.Close()
+	c, _ := newTestClient(0)
+	var out struct{ Echo string }
+	h := http.Header{"Authorization": {"Bearer x"}}
+	if _, err := c.SendJSON(context.Background(), http.MethodPost, srv.URL, h, map[string]string{"a": "oi"}, &out); err != nil {
+		t.Fatal(err)
+	}
+	if out.Echo != "oi" {
+		t.Errorf("echo = %q", out.Echo)
 	}
 }

@@ -65,7 +65,7 @@ func TestMigrateThenStats(t *testing.T) {
 		t.Fatalf("stats: code=%d stderr=%q", code, errOut)
 	}
 	for _, want := range []string{
-		"Config:  embutido", "Esquema: versão 2", "items", "daily_terms", "ai_usage",
+		"Config:  embutido", "Esquema: versão 3", "items", "daily_terms", "ai_usage",
 		"nenhuma coleta registrada", "IA no mês: 0 tokens (limite semanal: 500.000)",
 		"GITHUB_TOKEN        ok", "BSKY_HANDLE         não definido",
 	} {
@@ -85,8 +85,8 @@ func TestNotImplementedAndUsage(t *testing.T) {
 		{nil, exitUsage, "Comandos:"},
 		{[]string{"help"}, exitOK, "Comandos:"},
 		{[]string{"voar"}, exitUsage, "comando desconhecido"},
-		{[]string{"collect", "--source", "bsky", "--db", "x.db"}, exitError, "bsky: não implementado"},
-		{[]string{"collect", "--source", "gh", "--db", "x.db"}, exitError, "gh: não implementado"},
+		{[]string{"collect", "--source", "bsky", "--db", "x.db"}, exitError, "BSKY_HANDLE e BSKY_APP_PASSWORD"},
+		{[]string{"collect", "--source", "gh", "--db", "x.db"}, exitError, "GITHUB_TOKEN não definido"},
 		{[]string{"collect", "--source", "reddit"}, exitUsage, "--source \"reddit\" inválida"},
 		{[]string{"report", "--no-ai", "--week", "2026-48"}, exitError, "não implementado"},
 		{[]string{"report", "--week", "2026-60"}, exitUsage, "01 a 53"},
@@ -160,7 +160,7 @@ func (s stubCollector) Collect(ctx context.Context, req collect.Request, emit fu
 	}})
 }
 
-func TestCollectAllRunsAvailableSources(t *testing.T) {
+func TestCollectAllIsolatesFailures(t *testing.T) {
 	dir := isolate(t)
 	dbPath := filepath.Join(dir, "ideias.db")
 	var out, errb bytes.Buffer
@@ -168,40 +168,41 @@ func TestCollectAllRunsAvailableSources(t *testing.T) {
 		return time.Date(2026, 11, 26, 12, 0, 0, 0, time.UTC)
 	}}
 	app.Collectors = func(*env) map[string]collect.Collector {
-		return map[string]collect.Collector{"hn": stubCollector{source: "hn"}}
+		return map[string]collect.Collector{
+			"hn":   stubCollector{source: "hn"},
+			"bsky": stubCollector{source: "bsky", err: errors.New("rede caiu")},
+			"gh":   stubCollector{source: "gh"},
+		}
 	}
 
 	// Sem "migrate" antes: o collect aplica as migrações sozinho.
-	if code := app.Run(context.Background(), []string{"collect", "--db", dbPath}); code != exitOK {
-		t.Fatalf("code=%d out=%q err=%q", code, out.String(), errb.String())
+	// A falha do bsky não impede o gh, que roda depois dele.
+	if code := app.Run(context.Background(), []string{"collect", "--db", dbPath}); code != exitError {
+		t.Fatalf("falha de uma fonte deveria sair com 1: code=%d", code)
 	}
-	for _, want := range []string{"migração aplicada: 0001_init", "hn: ok · 1 vistos, 1 novos", "bsky: não implementado", "gh: não implementado"} {
+	for _, want := range []string{"migração aplicada: 0001_init", "hn: ok · 1 vistos, 1 novos", "bsky: error", "gh: ok · 1 vistos, 1 novos"} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("saída sem %q:\n%s", want, out.String())
 		}
 	}
+	if !strings.Contains(errb.String(), "bsky: rede caiu") {
+		t.Errorf("stderr = %q", errb.String())
+	}
 
 	out.Reset()
-	app.Run(context.Background(), []string{"collect", "--source", "hn", "--db", dbPath})
-	if !strings.Contains(out.String(), "hn: ok · 1 vistos, 0 novos") || !strings.Contains(out.String(), "desde o cursor") {
+	if code := app.Run(context.Background(), []string{"collect", "--source", "hn", "--db", dbPath}); code != exitOK {
+		t.Errorf("só hn: code=%d", code)
+	}
+	if !strings.Contains(out.String(), "hn: ok · 1 vistos, 0 novos") || !strings.Contains(out.String(), "desde o cursor") ||
+		strings.Contains(out.String(), "gh:") {
 		t.Errorf("2ª coleta:\n%s", out.String())
 	}
 
 	out.Reset()
-	errb.Reset()
-	app.Collectors = func(*env) map[string]collect.Collector {
-		return map[string]collect.Collector{"hn": stubCollector{source: "hn", err: errors.New("rede caiu")}}
-	}
-	if code := app.Run(context.Background(), []string{"collect", "--db", dbPath}); code != exitError {
-		t.Errorf("falha de fonte deveria sair com 1, saiu %d", code)
-	}
-	if !strings.Contains(out.String(), "hn: error") || !strings.Contains(errb.String(), "rede caiu") {
-		t.Errorf("out=%q err=%q", out.String(), errb.String())
-	}
-
-	out.Reset()
 	app.Run(context.Background(), []string{"stats", "--db", dbPath})
-	if !strings.Contains(out.String(), "hn    ") || !strings.Contains(out.String(), "· error ·") {
-		t.Errorf("stats não mostra a última coleta:\n%s", out.String())
+	for _, want := range []string{"Itens por fonte:", "gh             1 (1 nesta semana)", "hn             1 (1 nesta semana)", "bsky  2026-11-26", "· error ·"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("stats sem %q:\n%s", want, out.String())
+		}
 	}
 }

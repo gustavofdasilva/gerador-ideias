@@ -1,0 +1,38 @@
+{
+ "cursor": "2",
+ "hitsTotal": 4,
+ "posts": [
+  {
+   "uri": "at://did:plc:aaaa1111/app.bsky.feed.post/3lnew001",
+   "cid": "bafyreiaaaa",
+   "author": {"did": "did:plc:aaaa1111", "handle": "alguem.bsky.social", "displayName": "Alguém"},
+   "record": {"$type": "app.bsky.feed.post", "text": "Tem algum app que organize orçamento de freela em dólar? Pagaria por isso.", "createdAt": "2026-11-26T10:15:30.123Z", "langs": ["pt-BR"]},
+   "indexedAt": "2026-11-26T10:15:31.456Z",
+   "likeCount": 12, "repostCount": 3, "replyCount": 4, "quoteCount": 0
+  },
+  {
+   "uri": "at://did:plc:bbbb2222/app.bsky.feed.post/3lnew002",
+   "cid": "bafyreibbbb",
+   "author": {"did": "did:plc:bbbb2222", "handle": "other.example.com"},
+   "record": {"$type": "app.bsky.feed.post", "text": "Is there an alternative to Calendly that doesn't cost $15/month?", "createdAt": "2027-03-01T00:00:00Z", "langs": ["en"]},
+   "indexedAt": "2026-11-26T09:00:00.000Z",
+   "likeCount": 0, "repostCount": 0, "replyCount": 1, "quoteCount": 0
+  },
+  {
+   "uri": "at://did:plc:cccc3333/app.bsky.feed.post/3lnew003",
+   "cid": "bafyreicccc",
+   "author": {"did": "did:plc:cccc3333", "handle": "sem-idioma.bsky.social"},
+   "record": {"$type": "app.bsky.feed.post", "text": "¿Alguien conoce una alternativa a Notion para equipos pequeños?", "createdAt": "2026-11-26T08:00:00Z"},
+   "indexedAt": "2026-11-26T08:00:02Z",
+   "likeCount": 5, "repostCount": 1, "replyCount": 0, "quoteCount": 0
+  },
+  {
+   "uri": "at://did:plc:dddd4444/app.bsky.feed.post/3lnew004",
+   "cid": "bafyreidddd",
+   "author": {"did": "did:plc:dddd4444", "handle": "so-imagem.bsky.social"},
+   "record": {"$type": "app.bsky.feed.post", "text": "   ", "createdAt": "2026-11-26T07:00:00Z", "langs": ["en"]},
+   "indexedAt": "2026-11-26T07:00:01Z",
+   "likeCount": 1, "repostCount": 0, "replyCount": 0, "quoteCount": 0
+  }
+ ]
+}

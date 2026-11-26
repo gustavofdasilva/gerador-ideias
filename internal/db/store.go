@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -29,6 +30,7 @@ type Item struct {
 	AuthorHash string
 	LangHint   string
 	Engagement int
+	Brands     []string // marcas já conhecidas pela fonte (ex.: owner/repo no GitHub)
 }
 
 // InsertItems grava os itens numa transação, ignorando os que já existem
@@ -43,8 +45,8 @@ func InsertItems(ctx context.Context, db *sql.DB, items []Item, collectedAt time
 	}
 	defer tx.Rollback() //nolint:errcheck // sem efeito depois do Commit
 	stmt, err := tx.PrepareContext(ctx, `INSERT INTO items
-		(source, external_id, url, created_at, week, collected_at, text, author_hash, lang_hint, engagement)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		(source, external_id, url, created_at, week, collected_at, text, author_hash, lang_hint, engagement, brands)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (source, external_id) DO NOTHING`)
 	if err != nil {
 		return 0, err
@@ -54,7 +56,8 @@ func InsertItems(ctx context.Context, db *sql.DB, items []Item, collectedAt time
 	for _, it := range items {
 		res, err := stmt.ExecContext(ctx, it.Source, it.ExternalID, it.URL,
 			it.CreatedAt.Unix(), week.Of(it.CreatedAt), collectedAt.Unix(),
-			Truncate(it.Text, MaxTextRunes), it.AuthorHash, it.LangHint, it.Engagement)
+			Truncate(it.Text, MaxTextRunes), it.AuthorHash, it.LangHint, it.Engagement,
+			strings.Join(it.Brands, ","))
 		if err != nil {
 			return 0, fmt.Errorf("item %s/%s: %w", it.Source, it.ExternalID, err)
 		}

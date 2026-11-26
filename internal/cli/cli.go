@@ -332,6 +332,14 @@ func (a *App) printStats(e *env, s *db.Stats) {
 		fmt.Fprintf(w, "  %-14s %10s\n", t.Table, groupThousands(t.Rows))
 	}
 
+	fmt.Fprintln(w, "\nItens por fonte:")
+	if len(s.BySource) == 0 {
+		fmt.Fprintln(w, "  nenhum item coletado")
+	}
+	for _, sc := range s.BySource {
+		fmt.Fprintf(w, "  %-5s %10s (%s nesta semana)\n", sc.Source, groupThousands(sc.Items), groupThousands(sc.ThisWeek))
+	}
+
 	fmt.Fprintln(w, "\nÚltima coleta por fonte:")
 	if len(s.LastRuns) == 0 {
 		fmt.Fprintln(w, "  nenhuma coleta registrada")

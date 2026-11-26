@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"gerador-ideias/internal/week"
 )
 
 // TableCount é a contagem de linhas de uma tabela.
@@ -35,6 +37,14 @@ type Stats struct {
 	Tables        []TableCount
 	LastRuns      []LastRun
 	MonthTokens   int64
+	BySource      []SourceCount
+}
+
+// SourceCount é o total de itens de uma fonte e quantos são da semana atual.
+type SourceCount struct {
+	Source   string
+	Items    int64
+	ThisWeek int64
 }
 
 // CollectStats lê o retrato do banco. now define o mês do total de tokens.
@@ -103,6 +113,9 @@ func CollectStats(ctx context.Context, db *sql.DB, path string, now time.Time) (
 	if s.LastRuns, err = lastRuns(ctx, db); err != nil {
 		return nil, err
 	}
+	if s.BySource, err = itemsBySource(ctx, db, week.Of(now)); err != nil {
+		return nil, err
+	}
 
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	if err := db.QueryRowContext(ctx,
@@ -111,6 +124,24 @@ func CollectStats(ctx context.Context, db *sql.DB, path string, now time.Time) (
 		return nil, err
 	}
 	return s, nil
+}
+
+func itemsBySource(ctx context.Context, db *sql.DB, thisWeek string) ([]SourceCount, error) {
+	rows, err := db.QueryContext(ctx, `SELECT source, count(*), count(*) FILTER (WHERE week = ?)
+		FROM items GROUP BY source ORDER BY source`, thisWeek)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []SourceCount
+	for rows.Next() {
+		var sc SourceCount
+		if err := rows.Scan(&sc.Source, &sc.Items, &sc.ThisWeek); err != nil {
+			return nil, err
+		}
+		out = append(out, sc)
+	}
+	return out, rows.Err()
 }
 
 func lastRuns(ctx context.Context, db *sql.DB) ([]LastRun, error) {

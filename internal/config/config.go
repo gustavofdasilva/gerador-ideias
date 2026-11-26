@@ -91,13 +91,22 @@ func (c Collect) Overlap() time.Duration {
 
 // Sources guarda opções por fonte.
 type Sources struct {
-	HN HNSource `toml:"hn"`
+	HN   LangSource `toml:"hn"`
+	Bsky LangSource `toml:"bsky"`
+	GH   GHSource   `toml:"gh"`
 }
 
-// HNSource configura o coletor do Hacker News.
-type HNSource struct {
-	// Idiomas cujas frases de dor são buscadas no HN (quase tudo lá é inglês).
+// LangSource é uma fonte configurada só pelos idiomas buscados.
+type LangSource struct {
+	// Idiomas cujas frases de dor são buscadas na fonte.
 	Languages []string `toml:"languages"`
+}
+
+// GHSource configura o coletor do GitHub Issues.
+type GHSource struct {
+	Languages []string `toml:"languages"`
+	// A issue precisa ter pelo menos uma destas labels. Vazio = sem filtro.
+	Labels []string `toml:"labels"`
 }
 
 // PhrasesFor devolve as frases (sem repetição, em ordem estável) dos idiomas dados.
@@ -191,8 +200,10 @@ func (c *Config) normalize() {
 	for i, l := range c.Languages {
 		c.Languages[i] = strings.ToLower(strings.TrimSpace(l))
 	}
-	for i, l := range c.Sources.HN.Languages {
-		c.Sources.HN.Languages[i] = strings.ToLower(strings.TrimSpace(l))
+	for _, list := range [][]string{c.Sources.HN.Languages, c.Sources.Bsky.Languages, c.Sources.GH.Languages} {
+		for i, l := range list {
+			list[i] = strings.ToLower(strings.TrimSpace(l))
+		}
 	}
 	phrases := make(map[string]map[string][]string, len(c.Pain.Phrases))
 	for lang, byType := range c.Pain.Phrases {
@@ -287,12 +298,26 @@ func (c *Config) Validate() error {
 	if c.Collect.OverlapMinutes < 0 {
 		add("collect.overlap_minutes negativo")
 	}
-	if len(c.Sources.HN.Languages) == 0 {
-		add("sources.hn.languages vazio")
+	for _, src := range []struct {
+		name  string
+		langs []string
+	}{
+		{"hn", c.Sources.HN.Languages},
+		{"bsky", c.Sources.Bsky.Languages},
+		{"gh", c.Sources.GH.Languages},
+	} {
+		if len(src.langs) == 0 {
+			add("sources.%s.languages vazio", src.name)
+		}
+		for _, l := range src.langs {
+			if !enabled[l] {
+				add("sources.%s.languages: idioma %q fora de languages", src.name, l)
+			}
+		}
 	}
-	for _, l := range c.Sources.HN.Languages {
-		if !enabled[l] {
-			add("sources.hn.languages: idioma %q fora de languages", l)
+	for _, l := range c.Sources.GH.Labels {
+		if strings.TrimSpace(l) == "" {
+			add("sources.gh.labels: label vazia")
 		}
 	}
 	return errors.Join(errs...)

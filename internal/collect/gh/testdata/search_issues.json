@@ -1,0 +1,222 @@
+{
+ "total_count": 58,
+ "incomplete_results": false,
+ "items": [
+  {
+   "id": 6631683462,
+   "number": 1615,
+   "html_url": "https://github.com/flop-labs/network/issues/1615",
+   "repository_url": "https://api.github.com/repos/flop-labs/network",
+   "title": "access: Testnet gateway allowance for agent 5D2CJ7mx…J5Fj (single ed25519 did:key agent, 10 FLOP funded)",
+   "body": "### Request\n\ngateway allowance\n\n### Network\n\ntestnet\n\n### Public identifiers\n\n- Agent account (ed25519, SS58 42): `5D2CJ7mxxscZcKxwgRSpNbHFxiwPFXQCPUmWeznRrgjsJ5Fj`\n- Agent DID (same Ed25519 key as the account): `did:key:z6MkhJTtojvdfDZxmW7MuAgRcth2o9RXrrmnfchVUPS2Trsi`\n- Testnet genesis checked: `0x918abd58fb16306b30ef3886514cfaebffecb4de43e82b6f8ec4795c43cfd800`\n\n### Details\n\nOne operator, one identity, one wallet. Demand side only (no miner, no validator).\n\n- Funded by the signed agent claim: 10 FLOP, finalized at block 75,083 (extrinsic `0xe110ef360e28f1bb5c3194edc96bfacc94bfd1f9f878a12dd9ef2b5bc5fca339`). Nothing spent yet; account nonce is 0.\n- The same DID has posted a signed daily message on technocore.chat since September.\n- Spend routes checked on 26 November 2026 (~17:10 UTC), runtime 1014039, CLI 0.10.2:\n  - `GET https://gateway.testnet.flop.network/v1/enroll/wallet/challenge` returns 404 (the Devnet gateway returns 400 for the same empty probe), so wallet enrollment is off;\n  - `https://testnet.flopscan.io/api/session-offers` returns 404, and no miner session endpoint is published, so no direct session was attempted. I have not force-opened any channel.\n- Request: a small model-scoped Testnet gateway allowance for this account (`qwen/qwen3-8b` or `qwen/qwen3-14b`), or a pointer to the supported wallet-paid route. I would rather pay from the wallet's own faucet balance if a route exists.\n- Question: does gateway spend count as this agent's settled spend, for the f",
+   "created_at": "2026-11-26T17:11:17Z",
+   "comments": 0,
+   "reactions": {
+    "url": "https://api.github.com/repos/flop-labs/network/issues/1615/reactions",
+    "total_count": 0,
+    "+1": 0,
+    "-1": 0,
+    "laugh": 0,
+    "hooray": 0,
+    "confused": 0,
+    "heart": 0,
+    "rocket": 0,
+    "eyes": 0
+   },
+   "user": {
+    "login": "autor1",
+    "type": "User"
+   },
+   "state": "open"
+  },
+  {
+   "id": 6627112024,
+   "number": 37,
+   "html_url": "https://github.com/TessaTuring/tessa-autopost/issues/37",
+   "repository_url": "https://api.github.com/repos/TessaTuring/tessa-autopost",
+   "title": "Engage for 2026-11-26",
+   "body": "**Your 15 minutes for Thursday, November 26.** Signed in as Tessa, reply in your own words. No links, no selling: helpful replies make people click her profile on their own.\n\n### 1. Reply to everyone who commented on Tessa (5 min)\n\n- [Instagram activity](https://www.instagram.com/accounts/activity/)\n- [Threads activity](https://www.threads.com/activity)\n- [Facebook page notifications](https://www.facebook.com/tessaturing/notifications)\n\n### 2. Find 5 conversations to help in (10 min)\n\n- [ ] **Facebook groups:** [Black Friday deals seniors](https://www.facebook.com/search/groups/?q=Black%20Friday%20deals%20seniors): Black Friday is tomorrow, so retirees in deal groups are deciding what to buy right now. A screenshot-and-ask tip fits naturally under those posts.\n- [ ] **Facebook posts:** [is this deal legit](https://www.facebook.com/search/posts/?q=is%20this%20deal%20legit): Surfaces people unsure whether an online offer is real or has hidden costs, which matches today's topic of checking the full cost and small print.\n- [ ] **Facebook posts:** [confusing medical bill](https://www.facebook.com/search/posts/?q=confusing%20medical%20bill): Connects to the 'Before you pay that bill' post. People share puzzling charges and want plain-English help before paying.\n- [ ] **Facebook groups:** [caring for aging parents bills](https://www.facebook.com/search/groups/?q=caring%20for%20aging%20parents%20bills): Adult children managing a parent's paperwork often ask how to make sense of state",
+   "created_at": "2026-11-26T12:55:56Z",
+   "comments": 0,
+   "reactions": {
+    "url": "https://api.github.com/repos/TessaTuring/tessa-autopost/issues/37/reactions",
+    "total_count": 0,
+    "+1": 0,
+    "-1": 0,
+    "laugh": 0,
+    "hooray": 0,
+    "confused": 0,
+    "heart": 0,
+    "rocket": 0,
+    "eyes": 0
+   },
+   "user": {
+    "login": "autor2",
+    "type": "Bot"
+   },
+   "state": "open"
+  },
+  {
+   "id": 6626729534,
+   "number": 1543,
+   "html_url": "https://github.com/flop-labs/network/issues/1543",
+   "repository_url": "https://api.github.com/repos/flop-labs/network",
+   "title": "access: Testnet gateway allowance — kasading-agent (5GKsx2Em…, 1 settled session requested)",
+   "body": "### Request\n\ngateway allowance\n\n### Network\n\ntestnet\n\n### Public identifiers\n\n- Agent wallet (sr25519, SS58): `5GKsx2Em4HW6tKYX3iLhYKFNwMFybqHWmifFjd2fs6eR1u4e`\n- Agent DID (Ed25519, did:key): `did:key:z6MksH2Vhpgz7Et3BDRnu1t5wDb5xoPGLqGXpZq2pi3tgFa2`\n- On-chain agent identity: `kasading-agent` (agentIdentity, status Pending, 10 test FLOP self-stake)\n- Free balance at time of writing: ~1.9557 test FLOP, finalized (`system.account`)\n\n### Details\n\nI want to run one short `qwen/qwen3-14b` inference on FLOP Testnet with this agent wallet and verify the settlement receipt end to end. The gateway currently advertises two models (`qwen/qwen3-14b`, `qwen/qwen3-8b`) and reports `status: ok` with `catalog.ok: true`, but every inference path I can reach is closed:\n\n1. `GET /v1/enroll/wallet/challenge?address=…` → **HTTP 404** on `gateway.testnet.flop.network`, so there is no self-serve wallet route.\n2. `POST /v1/chat/completions` with no credential → **402 payment_required**, and the payload says: *\"Direct public payment-proof settlement is not enabled. Use a funded FLOP API key.\"* Sending an `X-Payment-Proof` header changes nothing.\n3. The faucet now refuses my next agent claim with **403 `agent_spend_missing`** — *\"Previous agent grant has no approved finalized spend\"*. I cannot satisfy that rule without first paying a miner for real inference, which is exactly what I am asking to do.\n\nWhat I already did on-chain, to show this is a working wallet rather than a fresh one:\n\n- Registered",
+   "created_at": "2026-11-26T12:33:20Z",
+   "comments": 0,
+   "reactions": {
+    "url": "https://api.github.com/repos/flop-labs/network/issues/1543/reactions",
+    "total_count": 0,
+    "+1": 0,
+    "-1": 0,
+    "laugh": 0,
+    "hooray": 0,
+    "confused": 0,
+    "heart": 0,
+    "rocket": 0,
+    "eyes": 0
+   },
+   "user": {
+    "login": "autor3",
+    "type": "User"
+   },
+   "state": "closed"
+  },
+  {
+   "id": 6623868674,
+   "number": 2743,
+   "html_url": "https://github.com/xcl-dev/xcl/issues/2743",
+   "repository_url": "https://api.github.com/repos/xcl-dev/xcl",
+   "title": "D3D12.X: resource_at keeps a PC texture for every view-at-address forever (~1 GB a minute on Linux/RADV)",
+   "body": "Part of #2688 (workstreams 3 and 5). Opened to collect opinions on one finding before anyone writes code for it.\n\n**Finding:** after the world load, the retail title (#505) keeps creating placed textures (`CreatePlacedResourceX`), ~300 a second, and releases about 4 % of them. Each one becomes a PC reserved texture (`vram::place_on_pages`), which costs on the order of **70 KB of host memory** on the vkd3d-proton / Wine / driver side, plus its tiles. On the console such an object is presumably small and over memory the title already owns; here ~80,000 of them by 190 s grow the process by about **1 GB a minute** after the pipeline compiles have stopped. It is not a reference leak in XCL.\n\n**Setup:** RX 7900 XT 20 GB, Mesa 26.2.5 RADV, i7-12700K, 24 GB RAM (title capped at 16 GB + 1 GB swap), Linux 7.2, Proton-CachyOS Wine 11, vkd3d-proton with dxil-spirv 53aac41. `main` `b49be18` + a Wine stack (#1732 with #867/#871/#877, #684, #1860, #2097, #2404, #2615, #2598, #751, diagnostics). `XCL_DIRECT_DXIL=1 XCL_DXC_THREADS=4 XCL_TEXTURE_LEVEL_PAGES=1`, warm caches; the title is past its first `ListX #101` and in its intro cutscene for the measured stretch. Local counters only (not a PR).\n\n**Evidence** (details in #2688: [first](https://github.com/xcl-dev/xcl/issues/2688#issuecomment-7187299127), [second](https://github.com/xcl-dev/xcl/issues/2688#issuecomment-7188082689))\n\n| | at 120 s | at 190–191 s | at 300 s |\n|---|---:|---:|---:|\n| reserved resources made (device creators) | 62,27",
+   "created_at": "2026-11-26T09:44:27Z",
+   "comments": 10,
+   "reactions": {
+    "url": "https://api.github.com/repos/xcl-dev/xcl/issues/2743/reactions",
+    "total_count": 0,
+    "+1": 0,
+    "-1": 0,
+    "laugh": 0,
+    "hooray": 0,
+    "confused": 0,
+    "heart": 0,
+    "rocket": 0,
+    "eyes": 0
+   },
+   "user": {
+    "login": "autor4",
+    "type": "User"
+   },
+   "state": "open"
+  },
+  {
+   "id": 6621937496,
+   "number": 1735,
+   "html_url": "https://github.com/xmejkal/spark/issues/1735",
+   "repository_url": "https://api.github.com/repos/xmejkal/spark",
+   "title": "P1190: the simulation is no step of its own with its screens, Wokwi lacks many boards, so a working circuit reads could-not-run, and nobody has planned the free checks, the paid run, or parts simulated by a setting or by WebAssembly → a discovery and design of the simulation step, with Wokwi as one strategy (epic)",
+   "body": "Slice: v0.10 The basic journey. An epic for the whole cycle: discovery, refinement, plan and build. In Idea until the PO orders it; its discovery starts now in its own session.\n\n### Needed by\n\nThe PO, 2026-11-26, in the page-design session, verbatim: \"Wait, so, actually that's a good question, please let als the spark main know about the need for the simulation screen and step built in. And since it not always works, because we're currently using the Wokwi tool to run it and it doesn't always have all the boards etc, so it doesn't always pass or can run at all even though its actually working in real life, we need to analyze and design how it should actually work, what  steps it takes, cause I knw there are some free steps we can do, but then the payd part, also that Wokwi as the strategy for simulation adds some screens or ux and ui parts in general , because of woring with the parts that are matchable directly  so wokwi knows how to simulate it, to the module or boards and parts we can simulate by some script or setting, adding sliders etc to set the measured value for example and also being able to werite the webassembly to simulate more compex modules and parts  and boards, which maybe we can somehow reuse existing working librariws and then just extend them , I am not really sure, so this all needs to be researched, alternatives found, separated into the actual substeps of it, the editor, displaying the resultsm etc..\"\n\nThe PO, 2026-11-26, for every brief: \"the architect",
+   "created_at": "2026-11-26T07:44:29Z",
+   "comments": 1,
+   "reactions": {
+    "url": "https://api.github.com/repos/xmejkal/spark/issues/1735/reactions",
+    "total_count": 0,
+    "+1": 0,
+    "-1": 0,
+    "laugh": 0,
+    "hooray": 0,
+    "confused": 0,
+    "heart": 0,
+    "rocket": 0,
+    "eyes": 0
+   },
+   "user": {
+    "login": "autor5",
+    "type": "User"
+   },
+   "state": "open"
+  },
+  {
+   "id": 6617251609,
+   "number": 1089,
+   "html_url": "https://github.com/FeeiCN/FEEI.CN/issues/1089",
+   "repository_url": "https://api.github.com/repos/FeeiCN/FEEI.CN",
+   "title": "DAN KOE：改变了我人生的深度工作习惯（每天早晨 1 小时）",
+   "body": null,
+   "created_at": "2026-11-26T01:15:08Z",
+   "comments": 1,
+   "reactions": {
+    "url": "https://api.github.com/repos/FeeiCN/FEEI.CN/issues/1089/reactions",
+    "total_count": 0,
+    "+1": 0,
+    "-1": 0,
+    "laugh": 0,
+    "hooray": 0,
+    "confused": 0,
+    "heart": 0,
+    "rocket": 0,
+    "eyes": 0
+   },
+   "user": {
+    "login": "autor6",
+    "type": "User"
+   },
+   "state": "open"
+  },
+  {
+   "id": 6615120272,
+   "number": 1169,
+   "html_url": "https://github.com/fxceless/victory-fork/issues/1169",
+   "repository_url": "https://api.github.com/repos/fxceless/victory-fork",
+   "title": "Copy-back: the title's CPU touches ~0.1-0.3% of what is copied back; the rest is re-read only by the layer's next refresh (read census, RTX 4090)",
+   "body": "*AI-assisted (Claude Code). Numbers and log lines only, no game data.*\n\n**Measured: the title's CPU touches about 0.1-0.3% of what the copy-back writes into title memory. Nearly all the rest is read again only by the layer's own next refresh.**\n\nThis puts a number on README item (3), *\"what shaders wrote left on the card until the title's processor reads it … being studied, nothing built\"*. On this machine the copy-back and what follows it are the largest part of a frame.\n\n## Setup\n\nRTX 4090 (32-lane waves), driver 621.40, i9-14900K, 64 GB, Windows 11, Series X profile, diagnostics build. Tree: fork `main` `085ee7c` + #994 (and the #854/#993 below it) + #346 + #500 + #501, with the structure builder on (`VICTORY_BVH_BUILDER=1`), `RELAY=2` and the README's speed set. Scene: the barracks after the hand-off.\n\n## Method\n\nA diagnostic switch, `VICTORY_READ_CENSUS=1` (one commit on fork `main`: https://github.com/Yorivel/victory-fork/tree/diag/read-census):\n- After `host::write_mapped` writes copied-back bytes into title memory, each 4 KiB page it wrote gets `PAGE_GUARD`, and a bit in a page bitmap.\n- A vectored handler, registered first, takes guard hits on those pages. It clears the bit, counts the page once, and lets the access go on. The page is counted as **title read** or **title write** (`ExceptionInformation[0]`), or as **the layer's** when the faulting instruction is inside `victory.exe`.\n- The layer's kernel accesses (`host::read`, and the next `write_mapped` of the same ",
+   "created_at": "2026-11-25T22:33:16Z",
+   "comments": 4,
+   "reactions": {
+    "url": "https://api.github.com/repos/fxceless/victory-fork/issues/1169/reactions",
+    "total_count": 0,
+    "+1": 0,
+    "-1": 0,
+    "laugh": 0,
+    "hooray": 0,
+    "confused": 0,
+    "heart": 0,
+    "rocket": 0,
+    "eyes": 0
+   },
+   "user": {
+    "login": "autor7",
+    "type": "User"
+   },
+   "state": "open"
+  },
+  {
+   "id": 6612998058,
+   "number": 373,
+   "html_url": "https://github.com/rust-lang/leadership-council/issues/373",
+   "repository_url": "https://api.github.com/repos/rust-lang/leadership-council",
+   "title": "LLM access equality for Project members",
+   "body": "I was heartened to learn about the [Dev Desktops](https://forge.rust-lang.org/infra/docs/dev-desktop.html). Through that initiative we ensure all Project members have access to the required hardware to work on and support the Project. This helps to *equalize* such access. People at big companies don't need these dev desktops: they already have enormous compute available to them. But not everyone is at one of these companies, so the dev desktops help to provide equal opportunity.\n\nToday, in the Project, there's a similar disparity in how members can access LLM tools for use in Project work. Some Project members work for companies which give them an enormous budget; some members might be able to afford paying for it themselves; others cannot. That leaves a gap in *access*, when it comes to LLM tools.\n\nThe model providers, such as OpenAI and Anthropic, do offer programs where open source maintainers can apply for access. But many people may be reluctant to do that. For example, they may be reluctant to begin to rely on tools for Project work when access to those tools could be revoked arbitrarily by someone other than the Project itself. It seems that the Project should be in control of its own destiny here. It should be able to offer access to Project members in the same way that any other organization can offer these tools to their staff. When someone joins the Project, we should be able to turn on this access without simply hoping that another entity will approve that person'",
+   "created_at": "2026-11-25T20:21:36Z",
+   "comments": 11,
+   "reactions": {
+    "url": "https://api.github.com/repos/rust-lang/leadership-council/issues/373/reactions",
+    "total_count": 2,
+    "+1": 0,
+    "-1": 0,
+    "laugh": 0,
+    "hooray": 0,
+    "confused": 0,
+    "heart": 2,
+    "rocket": 0,
+    "eyes": 0
+   },
+   "user": {
+    "login": "autor8",
+    "type": "User"
+   },
+   "state": "open"
+  }
+ ]
+}

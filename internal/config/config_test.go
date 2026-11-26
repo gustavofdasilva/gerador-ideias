@@ -56,6 +56,11 @@ initial_lookback_days = 7
 overlap_minutes = 60
 [sources.hn]
 languages = ["EN"]
+[sources.bsky]
+languages = ["en"]
+[sources.gh]
+languages = ["en"]
+labels = ["enhancement"]
 `
 
 func TestPhrasesFor(t *testing.T) {

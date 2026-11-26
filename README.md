@@ -4,7 +4,7 @@ Coletor leve que roda no celular (Termux), lê conversas públicas do Hacker New
 
 O design completo fica em [docs/design.md](docs/design.md), e as fases de implementação em [docs/roadmap.md](docs/roadmap.md).
 
-> Estado atual: **F1**. `migrate`, `stats` e `collect --source hn` funcionam. Bluesky e GitHub chegam na F2; `report`, `export` e `import` ainda respondem "não implementado".
+> Estado atual: **F2**. `migrate`, `stats` e `collect` (Hacker News, Bluesky e GitHub Issues) funcionam; `report`, `export` e `import` ainda respondem "não implementado".
 
 ## Compilar no PC
 
@@ -61,4 +61,12 @@ Todos os comandos aceitam `--db arquivo` para usar outro banco.
 
 Cada fonte tem um cursor: o fim da última janela coletada **sem erros**. A próxima coleta busca do cursor (menos `overlap_minutes`) até agora, por maior que seja o intervalo, então dias com o celular desligado são recuperados. Se alguma busca falhar, o cursor não avança e a janela inteira é repetida na próxima vez; os itens já gravados são ignorados pela chave `(source, external_id)`. Sem cursor, a coleta volta `initial_lookback_days` dias.
 
-Cada execução fica registrada na tabela `runs`, e a última de cada fonte aparece no `ideias stats`.
+Cada execução fica registrada na tabela `runs`, e a última de cada fonte aparece no `ideias stats`. Em `collect --source all`, a falha de uma fonte não impede as outras; o comando sai com código 1 e o erro fica em `runs`.
+
+## Credenciais das fontes
+
+- **Hacker News:** nenhuma.
+- **Bluesky:** `BSKY_HANDLE` e `BSKY_APP_PASSWORD`. Crie um app password em Settings › Privacy and security › App passwords (nunca use a senha principal). A busca do Bluesky exige login.
+- **GitHub:** `GITHUB_TOKEN`. Um token fine-grained sem nenhuma permissão extra basta para buscar issues públicas.
+
+Para testar uma fonte isolada: `bin/ideias collect --source bsky` (ou `gh`, `hn`).

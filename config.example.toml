@@ -110,6 +110,17 @@ overlap_minutes = 60
 # inglês; cada frase custa ao menos uma requisição por coleta.
 languages = ["en"]
 
+[sources.bsky]
+# Cada frase é buscada com o filtro de idioma do próprio Bluesky (lang=).
+# Precisa de BSKY_HANDLE e BSKY_APP_PASSWORD no env.
+languages = ["en", "pt", "es", "de", "fr"]
+
+[sources.gh]
+# Issues do GitHub são quase todas em inglês. Precisa de GITHUB_TOKEN no env.
+languages = ["en"]
+# A issue precisa ter pelo menos uma destas labels (vazio = qualquer issue).
+labels = ["enhancement", "feature request", "feature-request", "feature"]
+
 # ---------------------------------------------------------------------------
 # Rubrica de viabilidade (design, seção 6)
 # ---------------------------------------------------------------------------

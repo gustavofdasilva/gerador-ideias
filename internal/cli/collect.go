@@ -7,19 +7,29 @@ import (
 	"strings"
 
 	"gerador-ideias/internal/collect"
+	"gerador-ideias/internal/collect/bsky"
+	"gerador-ideias/internal/collect/gh"
 	"gerador-ideias/internal/collect/hn"
 	"gerador-ideias/internal/db"
+	"gerador-ideias/internal/secrets"
 )
 
 // sourceOrder é a ordem em que --source all roda as fontes.
 var sourceOrder = []string{"hn", "bsky", "gh"}
 
-// sourcePhase indica em que fase cada fonte ainda não implementada chega.
-var sourcePhase = map[string]string{"bsky": "F2", "gh": "F2"}
-
 func (a *App) defaultCollectors(e *env) map[string]collect.Collector {
+	cfg := e.cfg
+	var queries []bsky.Query
+	for _, lang := range cfg.Sources.Bsky.Languages {
+		for _, p := range cfg.PhrasesFor([]string{lang}) {
+			queries = append(queries, bsky.Query{Phrase: p, Lang: lang})
+		}
+	}
 	return map[string]collect.Collector{
-		hn.Source: hn.New(e.cfg.PhrasesFor(e.cfg.Sources.HN.Languages)),
+		hn.Source:   hn.New(cfg.PhrasesFor(cfg.Sources.HN.Languages)),
+		bsky.Source: bsky.New(e.secrets.Get(secrets.BskyHandle), e.secrets.Get(secrets.BskyAppPassword), queries),
+		gh.Source: gh.New(e.secrets.Get(secrets.GithubToken),
+			cfg.PhrasesFor(cfg.Sources.GH.Languages), cfg.Sources.GH.Labels),
 	}
 }
 
@@ -81,7 +91,7 @@ func (a *App) collect(ctx context.Context, args []string) error {
 	for _, src := range wanted {
 		col, ok := collectors[src]
 		if !ok {
-			fmt.Fprintf(a.Stdout, "%s: não implementado (previsto para a fase %s)\n", src, sourcePhase[src])
+			fmt.Fprintf(a.Stdout, "%s: não implementado\n", src)
 			continue
 		}
 		ran++
