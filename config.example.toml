@@ -1,0 +1,120 @@
+# Configuração do "ideias" (gerador de ideias).
+#
+# Copie este arquivo para um destes lugares (o primeiro que existir vence):
+#   1. ./config.toml                    (pasta onde o comando roda)
+#   2. ~/.config/ideias/config.toml
+# Ou aponte outro caminho com `ideias --config caminho.toml <comando>`.
+#
+# Tudo aqui pode ser editado sem recompilar. Segredos (tokens, senhas, chaves)
+# NÃO ficam neste arquivo: vão em variáveis de ambiente ou em ~/.config/ideias/env
+# (veja env.example).
+#
+# Se nenhum config.toml for encontrado, o binário usa os valores deste arquivo,
+# que vem embutido nele.
+
+# Caminho do banco SQLite. "~" é expandido para a pasta do usuário.
+db_path = "~/.local/share/ideias/ideias.db"
+
+# Idiomas detectados e coletados (códigos ISO 639-1).
+# Suportados na v1: en, pt, es, de, fr.
+languages = ["en", "pt", "es", "de", "fr"]
+
+# ---------------------------------------------------------------------------
+# Frases de dor e de pedido
+# ---------------------------------------------------------------------------
+# pain_score de um item = soma de (frases casadas de cada tipo × peso do tipo)
+#                         + bônus de engajamento.
+# Os tipos são livres, mas cada tipo usado em [pain.phrases.*] precisa de um
+# peso em [pain.weights]. As frases são comparadas sem diferenciar maiúsculas.
+[pain]
+# Bônus máximo por engajamento (pontos, likes, reações), somado ao pain_score.
+engagement_bonus_max = 2.0
+
+[pain.weights]
+request     = 1.0  # pede uma ferramenta ("is there an app")
+alternative = 1.5  # procura substituto ("alternative to")
+payment     = 2.0  # sinal de pagamento ("I'd pay for")
+complaint   = 0.8  # reclamação ("why doesn't", "so frustrating")
+churn       = 1.8  # largou um produto ("cancelled my subscription")
+# Sinal de distribuição automática (design, seção 6): intenção de busca ou de
+# marketplace. Indica que o público procuraria e acharia o produto sozinho.
+distribution = 1.2
+
+[pain.phrases.en]
+request     = ["is there an app", "is there a tool", "i wish there was", "does anyone know a tool", "looking for a tool", "feature request"]
+alternative = ["alternative to", "alternatives to", "switched from", "replacement for"]
+payment     = ["i'd pay for", "i would pay for", "happy to pay", "willing to pay", "take my money"]
+complaint   = ["why doesn't", "why can't", "so frustrating", "drives me crazy", "sucks"]
+churn       = ["cancelled my subscription", "canceled my subscription", "stopped using", "moving away from"]
+distribution = ["googled", "searched everywhere", "is there a plugin for", "is there an extension for", "is there an app for", "chrome extension", "shopify app", "wordpress plugin", "vs code extension", "figma plugin", "notion template", "zapier integration"]
+
+[pain.phrases.pt]
+request     = ["tem algum app que", "tem alguma ferramenta", "alguém conhece um app", "queria um app que", "existe algum app"]
+alternative = ["alguém conhece uma alternativa", "alternativa ao", "alternativa para", "troquei o"]
+payment     = ["pagaria por", "eu pagaria", "pagaria fácil"]
+complaint   = ["por que não tem", "que raiva do", "não aguento mais o"]
+churn       = ["cancelei minha assinatura", "cancelei a assinatura", "parei de usar"]
+distribution = ["procurei no google", "pesquisei e não achei", "tem alguma extensão", "tem algum plugin", "extensão do chrome", "app da shopify", "plugin do wordpress"]
+
+[pain.phrases.es]
+request     = ["hay alguna app", "hay alguna herramienta", "alguien conoce una app", "ojalá existiera"]
+alternative = ["alternativa a", "alguien conoce una alternativa", "me cambié de"]
+payment     = ["pagaría por", "yo pagaría"]
+complaint   = ["por qué no tiene", "qué frustrante"]
+churn       = ["cancelé mi suscripción", "dejé de usar"]
+distribution = ["busqué en google", "busqué por todas partes", "hay alguna extensión", "hay algún plugin", "extensión de chrome", "app de shopify", "plugin de wordpress"]
+
+[pain.phrases.de]
+request     = ["gibt es eine app", "gibt es ein tool", "ich wünschte es gäbe"]
+alternative = ["alternative zu"]
+payment     = ["würde dafür zahlen", "würde dafür bezahlen"]
+complaint   = ["warum kann", "nervt"]
+churn       = ["abo gekündigt", "nutze ich nicht mehr"]
+distribution = ["gibt es ein plugin", "gibt es eine erweiterung", "chrome-erweiterung"]
+
+[pain.phrases.fr]
+request     = ["existe-t-il une app", "il existe une appli", "je cherche un outil"]
+alternative = ["alternative à"]
+payment     = ["je paierais pour", "prêt à payer"]
+complaint   = ["pourquoi ne peut", "tellement frustrant"]
+churn       = ["résilié mon abonnement", "j'ai arrêté d'utiliser"]
+distribution = ["existe-t-il un plugin", "existe-t-il une extension", "extension chrome"]
+
+# ---------------------------------------------------------------------------
+# Marcas-semente
+# ---------------------------------------------------------------------------
+# Lista inicial de marcas reconhecidas no texto. Os padrões ("alternative to X",
+# "X sucks") e o owner/repo do GitHub completam a lista automaticamente.
+[brands]
+seed = [
+  "Notion", "Trello", "Asana", "Jira", "Slack", "Zapier", "Airtable",
+  "Harvest", "Toggl", "FreshBooks", "QuickBooks", "Xero", "Stripe", "Gumroad",
+  "Calendly", "Mailchimp", "HubSpot", "Shopify", "WordPress", "Figma",
+  "Canva", "Evernote", "Todoist", "Obsidian", "Dropbox", "Google Drive",
+]
+
+# ---------------------------------------------------------------------------
+# Rubrica de viabilidade (design, seção 6)
+# ---------------------------------------------------------------------------
+# Pesos em %, a soma precisa dar 100. Cada critério recebe nota de 0 a 5 da IA.
+[rubric]
+frequency    = 10  # frequência e tendência da dor
+payment      = 20  # sinal de pagamento
+distribution = 15  # distribuição automática (SEO, marketplace, conteúdo, crescimento embutido)
+b2b          = 10  # público B2B ou prosumer
+global       = 10  # global e em USD
+solo         = 15  # construível solo
+sellability  = 10  # vendabilidade
+infra        = 10  # infraestrutura barata
+
+# ---------------------------------------------------------------------------
+# IA via OmniRoute (design, seção 5.5)
+# ---------------------------------------------------------------------------
+# O OmniRoute é infraestrutura externa: o "ideias" só consome a API dele.
+# A URL e a chave vêm do ambiente (OMNIROUTE_BASE_URL, OMNIROUTE_API_KEY).
+[ai]
+# Nome do modelo ou combo configurado no OmniRoute para cada etapa.
+group_model = "combo-agrupar"
+score_model = "combo-pontuar"
+# Limite de tokens (entrada + saída) por semana ISO, para preservar as cotas gratuitas.
+weekly_token_limit = 500000

@@ -1,0 +1,17 @@
+# Binários
+/bin/
+
+# Segredos: nunca versionar
+env
+.env
+*.env
+!env.example
+
+# Configuração local (o modelo versionado é config.example.toml)
+/config.toml
+
+# Banco SQLite e arquivos auxiliares
+*.db
+*.db-wal
+*.db-shm
+*.db-journal

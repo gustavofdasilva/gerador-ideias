@@ -1,0 +1,164 @@
+package config
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"gerador-ideias"
+)
+
+func TestExampleConfigIsValid(t *testing.T) {
+	cfg, err := Parse(ideias.ExampleConfig)
+	if err != nil {
+		t.Fatalf("config.example.toml inválido: %v", err)
+	}
+	if got := cfg.Rubric.Sum(); got != 100 {
+		t.Errorf("rubrica soma %d", got)
+	}
+	if len(cfg.Languages) != len(SupportedLanguages) {
+		t.Errorf("languages = %v", cfg.Languages)
+	}
+	for _, lang := range cfg.Languages {
+		if len(cfg.Pain.Phrases[lang]) == 0 {
+			t.Errorf("sem frases para %s", lang)
+		}
+	}
+	if len(cfg.Brands.Seed) == 0 {
+		t.Error("sem marcas-semente")
+	}
+}
+
+const minimal = `
+db_path = "x.db"
+languages = ["en"]
+[pain]
+[pain.weights]
+request = 1.0
+[pain.phrases.en]
+request = ["  Is There An App  "]
+[rubric]
+frequency = 10
+payment = 20
+distribution = 15
+b2b = 10
+global = 10
+solo = 15
+sellability = 10
+infra = 10
+[ai]
+group_model = "a"
+score_model = "b"
+weekly_token_limit = 1000
+`
+
+func TestParseNormalizesPhrases(t *testing.T) {
+	cfg, err := Parse([]byte(minimal))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := cfg.Pain.Phrases["en"]["request"]; len(got) != 1 || got[0] != "is there an app" {
+		t.Errorf("frases = %q", got)
+	}
+}
+
+func TestParseErrors(t *testing.T) {
+	cases := []struct {
+		name    string
+		mutate  func(string) string
+		wantErr string
+	}{
+		{"idioma não suportado", func(s string) string {
+			return strings.Replace(s, `languages = ["en"]`, `languages = ["en", "it"]`, 1)
+		}, `"it" não suportado`},
+		{"rubrica não soma 100", func(s string) string {
+			return strings.Replace(s, "infra = 10", "infra = 11", 1)
+		}, "somam 101"},
+		{"tipo sem peso", func(s string) string {
+			return strings.Replace(s, `request = ["  Is`, `payment = ["x"]`+"\n"+`request = ["  Is`, 1)
+		}, "pain.phrases.en.payment: tipo sem peso"},
+		{"frases de idioma desabilitado", func(s string) string {
+			return s + "\n[pain.phrases.pt]\nrequest = [\"tem algum app\"]\n"
+		}, "pain.phrases.pt: idioma fora de languages"},
+		{"chave desconhecida", func(s string) string {
+			return "dbpath = \"y\"\n" + s
+		}, "chaves desconhecidas: dbpath"},
+		{"limite de tokens zero", func(s string) string {
+			return strings.Replace(s, "weekly_token_limit = 1000", "weekly_token_limit = 0", 1)
+		}, "weekly_token_limit"},
+		{"sem db_path", func(s string) string {
+			return strings.Replace(s, `db_path = "x.db"`, `db_path = ""`, 1)
+		}, "db_path vazio"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := Parse([]byte(tc.mutate(minimal)))
+			if err == nil {
+				t.Fatal("esperava erro")
+			}
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Errorf("erro %q não contém %q", err, tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestLoadPrecedence(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
+
+	cfg, err := Load("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Source != EmbeddedSource {
+		t.Errorf("sem arquivos, Source = %q", cfg.Source)
+	}
+
+	homeCfg := filepath.Join(dir, ".config", "ideias", "config.toml")
+	if err := os.MkdirAll(filepath.Dir(homeCfg), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(homeCfg, []byte(strings.Replace(minimal, "x.db", "home.db", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err = Load("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.DBPath != "home.db" {
+		t.Errorf("esperava o config da home, veio %q", cfg.DBPath)
+	}
+
+	if err := os.WriteFile("config.toml", []byte(strings.Replace(minimal, "x.db", "local.db", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err = Load("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.DBPath != "local.db" {
+		t.Errorf("./config.toml deveria vencer, veio %q", cfg.DBPath)
+	}
+
+	if _, err := Load(filepath.Join(dir, "nao-existe.toml")); err == nil {
+		t.Error("--config apontando para arquivo inexistente deveria falhar")
+	}
+}
+
+func TestExpandHome(t *testing.T) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skip(err)
+	}
+	got, _ := ExpandHome("~/a/b.db")
+	if want := filepath.Join(home, "a", "b.db"); got != want {
+		t.Errorf("got %q want %q", got, want)
+	}
+	if got, _ := ExpandHome("/abs/x.db"); got != "/abs/x.db" {
+		t.Errorf("caminho absoluto alterado: %q", got)
+	}
+}
