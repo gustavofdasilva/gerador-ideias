@@ -1,6 +1,7 @@
 // Package collect define a interface comum das fontes (design, seção 5.3) e o
-// Runner, que cuida do que é igual para todas: cursor, retomada, gravação sem
-// duplicados e registro da execução em runs (design, seção 5.1).
+// Runner, que cuida do que é igual para todas: cursor, retomada,
+// deduplicação, processamento local, gravação e registro da execução em runs
+// (design, seção 5.1).
 package collect
 
 import (
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"gerador-ideias/internal/db"
+	"gerador-ideias/internal/process"
 )
 
 // Item é o formato normalizado (design, 5.1 passo 2).
@@ -30,23 +32,30 @@ type Request struct {
 type Collector interface {
 	// Source é o identificador curto da fonte ("hn", "bsky", "gh").
 	Source() string
-	// Collect busca os itens da janela e os entrega em lotes a emit, à medida
-	// que chegam (assim uma interrupção não perde o que já foi baixado).
+	// Collect busca os itens da janela e os entrega em lotes a emit.
 	// Pode entregar o mesmo item mais de uma vez. Se parte da busca falhar,
 	// continua o que der e devolve os erros juntos (errors.Join) no fim.
 	Collect(ctx context.Context, req Request, emit func([]Item) error) error
 }
 
+// Processor é o processamento local de cada item (pacote process).
+type Processor interface {
+	Process(db.Item) process.Result
+}
+
 // Runner executa coletores contra o banco.
 type Runner struct {
-	DB  *sql.DB
-	Now func() time.Time
+	DB        *sql.DB
+	Now       func() time.Time
+	Processor Processor
 	// InitialLookback é quanto buscar para trás quando a fonte não tem cursor
 	// (primeira execução ou cursor apagado).
 	InitialLookback time.Duration
 	// Overlap re-busca o fim da janela anterior, para pegar itens indexados
 	// com atraso. Os repetidos são descartados.
 	Overlap time.Duration
+	// MinTermCount: termos com menos ocorrências na execução não são gravados.
+	MinTermCount int
 }
 
 // Result resume uma execução.
@@ -55,7 +64,8 @@ type Result struct {
 	Since       time.Time
 	Until       time.Time
 	Seen        int // itens recebidos da fonte (sem repetição dentro da execução)
-	New         int // itens gravados pela primeira vez
+	New         int // itens ainda não processados em execuções anteriores
+	Candidates  int // dos novos, quantos viraram candidatos (texto guardado)
 	Errors      int
 	Status      string // ok, partial ou error
 	Err         error
@@ -63,11 +73,15 @@ type Result struct {
 	CursorSaved bool
 }
 
-// Run executa um coletor: lê o cursor, busca a janela até agora, grava os
-// itens novos, registra a execução em runs e só avança o cursor se a busca
-// terminou sem erros. Assim, uma busca interrompida ou com falha é repetida
-// por inteiro na próxima vez, sem duplicar o que já foi gravado.
+// Run executa um coletor: lê o cursor, busca a janela até agora, processa os
+// itens novos e grava tudo numa transação no fim (candidatos, contagens e as
+// impressões dos itens vistos). O cursor só avança se a busca terminou sem
+// erros. Se o processo morrer no meio, nada é gravado e a janela inteira é
+// repetida na próxima vez, sem contar nada duas vezes.
 func (r *Runner) Run(ctx context.Context, c Collector) (*Result, error) {
+	if r.Processor == nil {
+		return nil, errors.New("Runner sem Processor")
+	}
 	source := c.Source()
 	now := r.Now().UTC()
 	res := &Result{Source: source, Until: now}
@@ -92,21 +106,34 @@ func (r *Runner) Run(ctx context.Context, c Collector) (*Result, error) {
 		return nil, err
 	}
 
-	seen := map[string]struct{}{}
+	batch := db.NewBatch()
+	inRun := map[string]bool{}
 	emit := func(items []Item) error {
-		fresh := items[:0:0]
 		for _, it := range items {
 			it.Source = source
-			if _, dup := seen[it.ExternalID]; dup {
+			if inRun[it.ExternalID] {
 				continue
 			}
-			seen[it.ExternalID] = struct{}{}
-			fresh = append(fresh, it)
+			inRun[it.ExternalID] = true
+			res.Seen++
+			seen, err := db.IsSeen(ctx, r.DB, source, it.ExternalID)
+			if err != nil {
+				return err
+			}
+			if seen {
+				continue
+			}
+			res.New++
+			pr := r.Processor.Process(it)
+			var cand *db.Candidate
+			if pr.Candidate {
+				it.Brands = pr.Brands
+				cand = &db.Candidate{Item: it, Lang: pr.Lang, Country: pr.Country, PainScore: pr.Score, Signals: pr.Signals}
+				res.Candidates++
+			}
+			batch.Add(it, pr.Lang, pr.Country, cand, pr.Terms, pr.Brands)
 		}
-		n, err := db.InsertItems(ctx, r.DB, fresh, r.Now())
-		res.Seen += len(fresh)
-		res.New += n
-		return err
+		return nil
 	}
 	req := Request{
 		Since:      res.Since,
@@ -114,6 +141,17 @@ func (r *Runner) Run(ctx context.Context, c Collector) (*Result, error) {
 		HashAuthor: func(a string) string { return hash(source, a) },
 	}
 	res.Err = c.Collect(ctx, req, emit)
+	res.Errors = countErrors(res.Err)
+
+	// Mesmo com o contexto cancelado (Android matou o processo com SIGTERM),
+	// grava o que foi processado e registra o fim da execução.
+	saveCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+	defer cancel()
+	if err := db.SaveBatch(saveCtx, r.DB, batch, max(r.MinTermCount, 1), r.Now()); err != nil {
+		res.Err = errors.Join(res.Err, fmt.Errorf("gravar lote: %w", err))
+		res.Errors++
+		res.New, res.Candidates = 0, 0
+	}
 
 	switch {
 	case res.Err == nil:
@@ -123,18 +161,22 @@ func (r *Runner) Run(ctx context.Context, c Collector) (*Result, error) {
 	default:
 		res.Status = "error"
 	}
-	res.Errors = countErrors(res.Err)
 
-	// Mesmo com o contexto cancelado (Android matou o processo com SIGTERM),
-	// tenta registrar o fim da execução.
-	saveCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
-	defer cancel()
 	if res.Err == nil {
 		if err := db.SetCursor(saveCtx, r.DB, source, res.Until, r.Now()); err != nil {
 			res.Err = fmt.Errorf("gravar cursor: %w", err)
 			res.Status, res.Errors = "error", res.Errors+1
 		} else {
 			res.CursorSaved = true
+			// A próxima janela começa em Until-Overlap; mas, se o cursor for
+			// apagado, a coleta volta InitialLookback. Guarda as impressões
+			// pelo maior dos dois (com 1 dia de folga), para nada ser contado
+			// duas vezes em nenhum dos casos.
+			keep := max(r.InitialLookback, r.Overlap) + 24*time.Hour
+			if _, err := db.PruneSeen(saveCtx, r.DB, source, res.Until.Add(-keep)); err != nil {
+				res.Err = fmt.Errorf("limpar seen: %w", err)
+				res.Status, res.Errors = "partial", res.Errors+1
+			}
 		}
 	}
 	run.Status, run.ItemsSeen, run.ItemsNew, run.Errors = res.Status, res.Seen, res.New, res.Errors
@@ -165,7 +207,7 @@ func countErrors(err error) int {
 // Summary é uma linha legível do resultado.
 func (r *Result) Summary() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s: %s · %d vistos, %d novos", r.Source, r.Status, r.Seen, r.New)
+	fmt.Fprintf(&b, "%s: %s · %d vistos, %d novos, %d candidatos", r.Source, r.Status, r.Seen, r.New, r.Candidates)
 	if r.Errors > 0 {
 		fmt.Fprintf(&b, ", %d erro(s)", r.Errors)
 	}

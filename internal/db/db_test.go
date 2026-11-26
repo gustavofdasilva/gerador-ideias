@@ -21,7 +21,7 @@ func openTemp(t *testing.T) (*sql.DB, string) {
 
 var wantTables = []string{
 	"ai_usage", "cluster_weeks", "clusters", "cursors",
-	"daily_brands", "daily_terms", "items", "meta", "runs",
+	"daily_brands", "daily_items", "daily_terms", "items", "meta", "runs", "seen",
 }
 
 func TestMigrationsAreWellFormed(t *testing.T) {

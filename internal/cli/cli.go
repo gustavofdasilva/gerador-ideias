@@ -332,12 +332,28 @@ func (a *App) printStats(e *env, s *db.Stats) {
 		fmt.Fprintf(w, "  %-14s %10s\n", t.Table, groupThousands(t.Rows))
 	}
 
-	fmt.Fprintln(w, "\nItens por fonte:")
+	fmt.Fprintln(w, "\nItens processados por fonte (histórico inteiro):")
 	if len(s.BySource) == 0 {
 		fmt.Fprintln(w, "  nenhum item coletado")
 	}
 	for _, sc := range s.BySource {
-		fmt.Fprintf(w, "  %-5s %10s (%s nesta semana)\n", sc.Source, groupThousands(sc.Items), groupThousands(sc.ThisWeek))
+		fmt.Fprintf(w, "  %-5s %10s itens · %s candidatos (%s)\n", sc.Source,
+			groupThousands(sc.Items), groupThousands(sc.Candidates), percent(sc.Rate()))
+	}
+	if len(s.Rates) > 0 {
+		fmt.Fprintf(w, "\nTaxa de candidatos por fonte e idioma (últimos %d dias):\n", db.RateDays)
+		for _, sc := range s.Rates {
+			fmt.Fprintf(w, "  %-5s %-4s %10s itens · %8s candidatos (%s)\n", sc.Source, sc.Lang,
+				groupThousands(sc.Items), groupThousands(sc.Candidates), percent(sc.Rate()))
+		}
+	}
+	if s.DataDays > 0 {
+		yearly := s.MonthlyGrowth * 12
+		fmt.Fprintf(w, "\nCrescimento estimado: %s/mês (%s/ano; meta < 200 MiB/ano) · base: %d dia(s) de posts\n",
+			humanBytes(s.MonthlyGrowth), humanBytes(yearly), s.DataDays)
+		if s.DataDays < 7 {
+			fmt.Fprintln(w, "  (estimativa grosseira: menos de 7 dias de dados)")
+		}
 	}
 
 	fmt.Fprintln(w, "\nÚltima coleta por fonte:")
@@ -395,4 +411,8 @@ func groupThousands(n int64) string {
 		return "-" + b.String()
 	}
 	return b.String()
+}
+
+func percent(f float64) string {
+	return strings.Replace(fmt.Sprintf("%.1f%%", f*100), ".", ",", 1)
 }

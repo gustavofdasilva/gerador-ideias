@@ -4,7 +4,7 @@ Coletor leve que roda no celular (Termux), lê conversas públicas do Hacker New
 
 O design completo fica em [docs/design.md](docs/design.md), e as fases de implementação em [docs/roadmap.md](docs/roadmap.md).
 
-> Estado atual: **F2**. `migrate`, `stats` e `collect` (Hacker News, Bluesky e GitHub Issues) funcionam; `report`, `export` e `import` ainda respondem "não implementado".
+> Estado atual: **F3**. `migrate`, `stats` e `collect` (Hacker News, Bluesky e GitHub Issues, com o filtro local de candidatos) funcionam; `report`, `export` e `import` ainda respondem "não implementado".
 
 ## Compilar no PC
 
@@ -62,6 +62,16 @@ Todos os comandos aceitam `--db arquivo` para usar outro banco.
 Cada fonte tem um cursor: o fim da última janela coletada **sem erros**. A próxima coleta busca do cursor (menos `overlap_minutes`) até agora, por maior que seja o intervalo, então dias com o celular desligado são recuperados. Se alguma busca falhar, o cursor não avança e a janela inteira é repetida na próxima vez; os itens já gravados são ignorados pela chave `(source, external_id)`. Sem cursor, a coleta volta `initial_lookback_days` dias.
 
 Cada execução fica registrada na tabela `runs`, e a última de cada fonte aparece no `ideias stats`. Em `collect --source all`, a falha de uma fonte não impede as outras; o comando sai com código 1 e o erro fica em `runs`.
+
+## O que a coleta guarda
+
+Cada item coletado passa pelo processamento local, sem IA: idioma, frases de dor, marcas, palavras-chave e país estimado.
+
+- **Candidatos** (frases de dor somando pelo menos `pain.min_score`) vão para a tabela `items`, com o texto cortado em 2.000 caracteres, `pain_score`, sinais (`request`, `payment`, `distribution`...), marcas, idioma e país estimado.
+- **Não-candidatos** não guardam texto: só somam nas contagens diárias (`daily_items`, `daily_terms`, `daily_brands`).
+- O país é sempre uma **estimativa**, feita a partir de moeda, TLD de links, países e cidades citados e idioma, com `desconhecido` como padrão.
+
+Para calibrar, edite no `config.toml` as frases (`[pain.phrases.*]`), as exclusões de falsos positivos (`[pain.exclude]`), os tipos que exigem marca (`pain.brand_required`), os padrões de marca (`[brands.patterns]`) e `[keywords]`, que controla o tamanho do banco. O `ideias stats` mostra a taxa de candidatos por fonte e idioma e o crescimento estimado do banco por mês.
 
 ## Credenciais das fontes
 

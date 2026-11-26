@@ -22,12 +22,22 @@ languages = ["en", "pt", "es", "de", "fr"]
 # ---------------------------------------------------------------------------
 # Frases de dor e de pedido
 # ---------------------------------------------------------------------------
-# pain_score de um item = soma de (frases casadas de cada tipo × peso do tipo)
+# pain_score de um item = soma dos pesos das frases casadas (cada frase conta
+#                         uma vez) + brand_bonus (se citar marca)
 #                         + bônus de engajamento.
+# O item vira CANDIDATO (e só então guarda o texto) se a soma das frases mais o
+# brand_bonus chegar a min_score; o engajamento só ordena os candidatos.
 # Os tipos são livres, mas cada tipo usado em [pain.phrases.*] precisa de um
-# peso em [pain.weights]. As frases são comparadas sem diferenciar maiúsculas.
+# peso em [pain.weights]. As frases são comparadas por palavra inteira, sem
+# diferenciar maiúsculas nem acentos, e valem em qualquer idioma do texto.
 [pain]
-# Bônus máximo por engajamento (pontos, likes, reações), somado ao pain_score.
+min_score = 1.0
+brand_bonus = 0.5
+# Tipos de frase que só contam se o item citar alguma marca. "alternative to
+# the system" ou "this sucks" sem marca são discussão abstrata, não dor de produto.
+brand_required = ["alternative", "complaint"]
+# Bônus máximo por engajamento (pontos, likes, reações), em escala logarítmica:
+# o máximo é atingido com ~100 de engajamento.
 engagement_bonus_max = 2.0
 
 [pain.weights]
@@ -80,11 +90,22 @@ complaint   = ["pourquoi ne peut", "tellement frustrant"]
 churn       = ["résilié mon abonnement", "j'ai arrêté d'utiliser"]
 distribution = ["existe-t-il un plugin", "existe-t-il une extension", "extension chrome"]
 
+# Trechos que anulam as frases que caem dentro deles (falsos positivos).
+# Ex.: "willing to pay" em "above what you are willing to pay" é preço, não dor.
+[pain.exclude]
+en = [
+  "what you are willing to pay", "what you're willing to pay", "what they are willing to pay",
+  "what people are willing to pay", "willing to pay the price", "sucks up", "sucks in",
+  "that sucks", "it sucks", "this sucks", "life sucks", "alternative to the", "an alternative to it",
+]
+pt = ["alternativa para isso", "alternativa para o problema"]
+es = ["alternativa a esto", "alternativa a eso"]
+
 # ---------------------------------------------------------------------------
-# Marcas-semente
+# Marcas
 # ---------------------------------------------------------------------------
-# Lista inicial de marcas reconhecidas no texto. Os padrões ("alternative to X",
-# "X sucks") e o owner/repo do GitHub completam a lista automaticamente.
+# Lista inicial de marcas reconhecidas no texto (sem diferenciar maiúsculas).
+# Os padrões abaixo e o owner/repo do GitHub completam a lista sozinhos.
 [brands]
 seed = [
   "Notion", "Trello", "Asana", "Jira", "Slack", "Zapier", "Airtable",
@@ -92,6 +113,39 @@ seed = [
   "Calendly", "Mailchimp", "HubSpot", "Shopify", "WordPress", "Figma",
   "Canva", "Evernote", "Todoist", "Obsidian", "Dropbox", "Google Drive",
 ]
+
+# Padrões com {marca}: a palavra (ou duas) no lugar de {marca} vira marca se
+# parecer nome próprio (começa com maiúscula, ex.: "Notion", "iCloud") ou se
+# estiver na lista-semente. Artigos logo depois do padrão são pulados.
+[brands.patterns]
+en = [
+  "alternative to {marca}", "alternatives to {marca}", "switched from {marca}",
+  "replacement for {marca}", "moving away from {marca}", "migrated from {marca}",
+  "{marca} sucks", "{marca} is terrible", "{marca} is too expensive", "cancelled my {marca}",
+]
+pt = [
+  "alternativa ao {marca}", "alternativa à {marca}", "alternativa para o {marca}",
+  "alternativa para {marca}", "troquei o {marca}", "saí do {marca}", "cancelei o {marca}",
+  "{marca} é muito caro", "{marca} é horrível",
+]
+es = [
+  "alternativa a {marca}", "alternativa al {marca}", "me cambié de {marca}",
+  "dejé {marca}", "{marca} es muy caro", "{marca} es horrible",
+]
+
+# ---------------------------------------------------------------------------
+# Palavras-chave (daily_terms)
+# ---------------------------------------------------------------------------
+# 1 a 3-gramas sem stopwords, contados uma vez por item, de todos os itens
+# coletados (candidatos ou não). Palavras das próprias frases de dor sozinhas
+# ("alternative", "pay") não contam: aparecem em tudo por construção.
+[keywords]
+max_n = 3
+# Limita itens longos (issues do GitHub) a dominar a contagem.
+max_per_item = 40
+# Numa execução, termos com menos ocorrências que isso (por dia, fonte, idioma
+# e país) não são gravados. É o que mantém o banco pequeno; suba se crescer demais.
+min_count = 2
 
 # ---------------------------------------------------------------------------
 # Coleta (design, seção 5.1)

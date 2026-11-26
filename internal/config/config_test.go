@@ -34,6 +34,11 @@ const minimal = `
 db_path = "x.db"
 languages = ["en"]
 [pain]
+min_score = 1.0
+[keywords]
+max_n = 3
+max_per_item = 40
+min_count = 2
 [pain.weights]
 request = 1.0
 [pain.phrases.en]

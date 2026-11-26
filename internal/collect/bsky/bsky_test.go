@@ -18,6 +18,7 @@ import (
 	"gerador-ideias/internal/collect"
 	"gerador-ideias/internal/db"
 	"gerador-ideias/internal/httpx"
+	"gerador-ideias/internal/process"
 )
 
 var base = time.Date(2026, 11, 26, 12, 0, 0, 0, time.UTC)
@@ -309,7 +310,7 @@ func TestEndToEndWithRunner(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := base
-	r := &collect.Runner{DB: conn, Now: func() time.Time { return now }, InitialLookback: 7 * 24 * time.Hour, Overlap: time.Hour}
+	r := &collect.Runner{DB: conn, Now: func() time.Time { return now }, Processor: process.Default(), InitialLookback: 7 * 24 * time.Hour, Overlap: time.Hour, MinTermCount: 1}
 	for i := 0; i < 2; i++ {
 		res, err := r.Run(ctx, c)
 		if err != nil {

@@ -65,7 +65,7 @@ func TestMigrateThenStats(t *testing.T) {
 		t.Fatalf("stats: code=%d stderr=%q", code, errOut)
 	}
 	for _, want := range []string{
-		"Config:  embutido", "Esquema: versão 3", "items", "daily_terms", "ai_usage",
+		"Config:  embutido", "Esquema: versão 4", "items", "daily_terms", "ai_usage",
 		"nenhuma coleta registrada", "IA no mês: 0 tokens (limite semanal: 500.000)",
 		"GITHUB_TOKEN        ok", "BSKY_HANDLE         não definido",
 	} {
@@ -180,7 +180,7 @@ func TestCollectAllIsolatesFailures(t *testing.T) {
 	if code := app.Run(context.Background(), []string{"collect", "--db", dbPath}); code != exitError {
 		t.Fatalf("falha de uma fonte deveria sair com 1: code=%d", code)
 	}
-	for _, want := range []string{"migração aplicada: 0001_init", "hn: ok · 1 vistos, 1 novos", "bsky: error", "gh: ok · 1 vistos, 1 novos"} {
+	for _, want := range []string{"migração aplicada: 0001_init", "hn: ok · 1 vistos, 1 novos, 1 candidatos", "bsky: error", "gh: ok · 1 vistos, 1 novos, 1 candidatos"} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("saída sem %q:\n%s", want, out.String())
 		}
@@ -193,14 +193,14 @@ func TestCollectAllIsolatesFailures(t *testing.T) {
 	if code := app.Run(context.Background(), []string{"collect", "--source", "hn", "--db", dbPath}); code != exitOK {
 		t.Errorf("só hn: code=%d", code)
 	}
-	if !strings.Contains(out.String(), "hn: ok · 1 vistos, 0 novos") || !strings.Contains(out.String(), "desde o cursor") ||
+	if !strings.Contains(out.String(), "hn: ok · 1 vistos, 0 novos, 0 candidatos") || !strings.Contains(out.String(), "desde o cursor") ||
 		strings.Contains(out.String(), "gh:") {
 		t.Errorf("2ª coleta:\n%s", out.String())
 	}
 
 	out.Reset()
 	app.Run(context.Background(), []string{"stats", "--db", dbPath})
-	for _, want := range []string{"Itens por fonte:", "gh             1 (1 nesta semana)", "hn             1 (1 nesta semana)", "bsky  2026-11-26", "· error ·"} {
+	for _, want := range []string{"Itens processados por fonte", "gh             1 itens · 1 candidatos (100,0%)", "hn    en            1 itens", "Crescimento estimado:", "bsky  2026-11-26", "· error ·"} {
 		if !strings.Contains(out.String(), want) {
 			t.Errorf("stats sem %q:\n%s", want, out.String())
 		}

@@ -10,11 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 	"unicode/utf8"
-
-	"gerador-ideias/internal/week"
 )
 
 // MaxTextRunes é o tamanho máximo de texto guardado por item (design, 5.1 passo 7).
@@ -31,43 +28,6 @@ type Item struct {
 	LangHint   string
 	Engagement int
 	Brands     []string // marcas já conhecidas pela fonte (ex.: owner/repo no GitHub)
-}
-
-// InsertItems grava os itens numa transação, ignorando os que já existem
-// (mesmo source e external_id). Devolve quantos eram novos.
-func InsertItems(ctx context.Context, db *sql.DB, items []Item, collectedAt time.Time) (int, error) {
-	if len(items) == 0 {
-		return 0, nil
-	}
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return 0, err
-	}
-	defer tx.Rollback() //nolint:errcheck // sem efeito depois do Commit
-	stmt, err := tx.PrepareContext(ctx, `INSERT INTO items
-		(source, external_id, url, created_at, week, collected_at, text, author_hash, lang_hint, engagement, brands)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT (source, external_id) DO NOTHING`)
-	if err != nil {
-		return 0, err
-	}
-	defer stmt.Close()
-	inserted := 0
-	for _, it := range items {
-		res, err := stmt.ExecContext(ctx, it.Source, it.ExternalID, it.URL,
-			it.CreatedAt.Unix(), week.Of(it.CreatedAt), collectedAt.Unix(),
-			Truncate(it.Text, MaxTextRunes), it.AuthorHash, it.LangHint, it.Engagement,
-			strings.Join(it.Brands, ","))
-		if err != nil {
-			return 0, fmt.Errorf("item %s/%s: %w", it.Source, it.ExternalID, err)
-		}
-		n, err := res.RowsAffected()
-		if err != nil {
-			return 0, err
-		}
-		inserted += int(n)
-	}
-	return inserted, tx.Commit()
 }
 
 // Truncate corta s em no máximo n runas, sem quebrar caracteres UTF-8.

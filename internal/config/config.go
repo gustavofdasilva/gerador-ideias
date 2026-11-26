@@ -28,6 +28,7 @@ type Config struct {
 	AI        AI       `toml:"ai"`
 	Collect   Collect  `toml:"collect"`
 	Sources   Sources  `toml:"sources"`
+	Keywords  Keywords `toml:"keywords"`
 
 	// Source é de onde a configuração veio: o caminho do arquivo ou "embutido".
 	Source string `toml:"-"`
@@ -36,15 +37,39 @@ type Config struct {
 // Pain define as frases de dor e os pesos por tipo.
 type Pain struct {
 	EngagementBonusMax float64 `toml:"engagement_bonus_max"`
+	// MinScore: pontuação mínima das frases (+ bônus de marca) para o item
+	// virar candidato. O engajamento só ordena, não decide.
+	MinScore float64 `toml:"min_score"`
+	// BrandBonus soma à pontuação quando o item casa uma frase e cita marca.
+	BrandBonus float64 `toml:"brand_bonus"`
+	// BrandRequired: tipos de frase que só contam se o item citar uma marca.
+	BrandRequired []string `toml:"brand_required"`
 	// Weights: tipo de frase -> peso.
 	Weights map[string]float64 `toml:"weights"`
 	// Phrases: idioma -> tipo de frase -> frases.
 	Phrases map[string]map[string][]string `toml:"phrases"`
+	// Exclude: idioma -> trechos que anulam as frases que caem dentro deles
+	// (falsos positivos, ex.: "what you are willing to pay").
+	Exclude map[string][]string `toml:"exclude"`
 }
 
-// Brands guarda a lista-semente de marcas.
+// Brands guarda a lista-semente e os padrões de extração de marcas.
 type Brands struct {
 	Seed []string `toml:"seed"`
+	// Patterns: idioma -> padrões com {marca}, ex.: "alternative to {marca}".
+	Patterns map[string][]string `toml:"patterns"`
+}
+
+// BrandPlaceholder marca a posição da marca num padrão.
+const BrandPlaceholder = "{marca}"
+
+// Keywords controla a contagem de palavras-chave (n-gramas) em daily_terms.
+type Keywords struct {
+	MaxN       int `toml:"max_n"`        // maior n-grama (1 a 3)
+	MaxPerItem int `toml:"max_per_item"` // n-gramas distintos contados por item
+	// MinCount: numa execução, termos com menos ocorrências que isso (por dia,
+	// fonte, idioma e país) não são gravados. Segura o crescimento do banco.
+	MinCount int `toml:"min_count"`
 }
 
 // Rubric são os pesos (%) da rubrica de viabilidade (design, seção 6).
@@ -267,6 +292,46 @@ func (c *Config) Validate() error {
 		if countPhrases(c.Pain.Phrases[lang]) == 0 {
 			add("idioma %q sem frases de dor em pain.phrases.%s", lang, lang)
 		}
+	}
+	if c.Pain.MinScore <= 0 {
+		add("pain.min_score precisa ser maior que zero")
+	}
+	if c.Pain.BrandBonus < 0 {
+		add("pain.brand_bonus negativo")
+	}
+	for _, typ := range c.Pain.BrandRequired {
+		if _, ok := c.Pain.Weights[typ]; !ok {
+			add("pain.brand_required: tipo %q sem peso em pain.weights", typ)
+		}
+	}
+	for _, lang := range sortedKeys(c.Pain.Exclude) {
+		if !enabled[lang] {
+			add("pain.exclude.%s: idioma fora de languages", lang)
+		}
+	}
+
+	for _, lang := range sortedKeys(c.Brands.Patterns) {
+		if !enabled[lang] {
+			add("brands.patterns.%s: idioma fora de languages", lang)
+		}
+		for _, p := range c.Brands.Patterns[lang] {
+			before, after, ok := strings.Cut(p, BrandPlaceholder)
+			if !ok || strings.Contains(after, BrandPlaceholder) {
+				add("brands.patterns.%s: %q precisa ter exatamente um %s", lang, p, BrandPlaceholder)
+			} else if strings.TrimSpace(before) == "" && strings.TrimSpace(after) == "" {
+				add("brands.patterns.%s: %q precisa de texto além de %s", lang, p, BrandPlaceholder)
+			}
+		}
+	}
+
+	if k := c.Keywords; k.MaxN < 1 || k.MaxN > 3 {
+		add("keywords.max_n precisa ir de 1 a 3")
+	}
+	if c.Keywords.MaxPerItem < 1 {
+		add("keywords.max_per_item precisa ser pelo menos 1")
+	}
+	if c.Keywords.MinCount < 1 {
+		add("keywords.min_count precisa ser pelo menos 1")
 	}
 
 	r := c.Rubric

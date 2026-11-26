@@ -11,6 +11,7 @@ import (
 	"gerador-ideias/internal/collect/gh"
 	"gerador-ideias/internal/collect/hn"
 	"gerador-ideias/internal/db"
+	"gerador-ideias/internal/process"
 	"gerador-ideias/internal/secrets"
 )
 
@@ -82,8 +83,10 @@ func (a *App) collect(ctx context.Context, args []string) error {
 	runner := &collect.Runner{
 		DB:              conn,
 		Now:             a.Now,
+		Processor:       process.New(e.cfg),
 		InitialLookback: e.cfg.Collect.InitialLookback(),
 		Overlap:         e.cfg.Collect.Overlap(),
+		MinTermCount:    e.cfg.Keywords.MinCount,
 	}
 
 	var errs []error

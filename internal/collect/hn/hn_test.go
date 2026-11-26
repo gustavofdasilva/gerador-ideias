@@ -20,6 +20,7 @@ import (
 	"gerador-ideias/internal/collect"
 	"gerador-ideias/internal/db"
 	"gerador-ideias/internal/httpx"
+	"gerador-ideias/internal/process"
 )
 
 // loadFixture lê uma resposta gravada da API real (autores anonimizados).
@@ -306,7 +307,7 @@ func newRunner(t *testing.T, clk *clock) (*collect.Runner, func(string) int) {
 		return n
 	}
 	return &collect.Runner{
-		DB: conn, Now: clk.Now,
+		DB: conn, Now: clk.Now, Processor: process.Default(), MinTermCount: 1,
 		InitialLookback: 7 * 24 * time.Hour,
 		Overlap:         time.Hour,
 	}, count
@@ -342,8 +343,16 @@ func TestEndToEndNoDuplicatesAndResume(t *testing.T) {
 	if res.FromCursor || res.New != total || !res.CursorSaved {
 		t.Fatalf("1ª execução: %+v", res)
 	}
-	if n := count(`SELECT count(*) FROM items WHERE source = 'hn'`); n != total {
-		t.Fatalf("items = %d, want %d", n, total)
+	// Só candidatos guardam texto; todos os itens entram em daily_items.
+	cands := res.Candidates
+	if cands < 10 || cands > total { // os 10 sintéticos são pedidos explícitos; os reais dependem de citar marca
+		t.Errorf("candidatos = %d de %d: o filtro parece errado", cands, total)
+	}
+	if n := count(`SELECT count(*) FROM items WHERE source = 'hn'`); n != cands {
+		t.Fatalf("items = %d, want %d candidatos", n, cands)
+	}
+	if n := count(`SELECT sum(items) FROM daily_items WHERE source = 'hn'`); n != total {
+		t.Fatalf("daily_items = %d, want %d", n, total)
 	}
 	if n := count(`SELECT count(*) FROM items WHERE author_hash = '' OR author_hash LIKE 'autor%'`); n != 0 {
 		t.Errorf("%d itens sem hash ou com o autor em claro", n)
@@ -358,8 +367,11 @@ func TestEndToEndNoDuplicatesAndResume(t *testing.T) {
 	if !res.FromCursor || res.New != 0 {
 		t.Fatalf("2ª execução: %+v", res)
 	}
-	if n := count(`SELECT count(*) FROM items`); n != total {
+	if n := count(`SELECT count(*) FROM items`); n != cands {
 		t.Fatalf("duplicou: items = %d", n)
+	}
+	if n := count(`SELECT sum(items) FROM daily_items`); n != total {
+		t.Fatalf("contou de novo: daily_items = %d", n)
 	}
 
 	// Celular desligado 3 dias: a próxima execução recupera o buraco.
@@ -378,12 +390,27 @@ func TestEndToEndNoDuplicatesAndResume(t *testing.T) {
 		t.Fatalf("buraco de 3 dias: %+v", res)
 	}
 
-	// Apagar o cursor (e perder os itens) e rodar de novo recupera o período.
+	// Apagar o cursor sem perder dados: a nova execução busca o período de
+	// novo, mas não conta nada duas vezes.
 	if err := db.DeleteCursor(ctx, runner.DB, Source); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := runner.DB.Exec(`DELETE FROM items`); err != nil {
+	res, err = runner.Run(ctx, c)
+	if err != nil || res.FromCursor || res.Seen == 0 {
+		t.Fatalf("sem cursor: %+v %v", res, err)
+	}
+	if n := count(`SELECT sum(items) FROM daily_items`); n != total+len(gap) {
+		t.Fatalf("contou de novo: daily_items = %d, want %d", n, total+len(gap))
+	}
+
+	// Apagar o cursor e perder os dados: rodar de novo recupera o período.
+	if err := db.DeleteCursor(ctx, runner.DB, Source); err != nil {
 		t.Fatal(err)
+	}
+	for _, tbl := range []string{"items", "seen", "daily_items", "daily_terms", "daily_brands"} {
+		if _, err := runner.DB.Exec(`DELETE FROM ` + tbl); err != nil {
+			t.Fatal(err)
+		}
 	}
 	res, err = runner.Run(ctx, c)
 	if err != nil {
@@ -393,8 +420,11 @@ func TestEndToEndNoDuplicatesAndResume(t *testing.T) {
 		t.Fatalf("sem cursor: %+v (want %d novos)", res, total+len(gap))
 	}
 
-	if n := count(`SELECT count(*) FROM runs WHERE command = 'collect' AND source = 'hn' AND status = 'ok' AND finished_at IS NOT NULL`); n != 4 {
-		t.Errorf("runs ok = %d, want 4", n)
+	if n := count(`SELECT sum(items) FROM daily_items`); n != total+len(gap) {
+		t.Errorf("período não recuperado: daily_items = %d", n)
+	}
+	if n := count(`SELECT count(*) FROM runs WHERE command = 'collect' AND source = 'hn' AND status = 'ok' AND finished_at IS NOT NULL`); n != 5 {
+		t.Errorf("runs ok = %d, want 5", n)
 	}
 }
 
