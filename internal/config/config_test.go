@@ -35,6 +35,12 @@ db_path = "x.db"
 languages = ["en"]
 [pain]
 min_score = 1.0
+[report]
+dir = "reports"
+top_candidates = 15
+top_keywords = 15
+top_brands = 15
+min_keyword_count = 3
 [keywords]
 max_n = 3
 max_per_item = 40

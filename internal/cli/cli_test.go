@@ -88,8 +88,8 @@ func TestNotImplementedAndUsage(t *testing.T) {
 		{[]string{"collect", "--source", "bsky", "--db", "x.db"}, exitError, "BSKY_HANDLE e BSKY_APP_PASSWORD"},
 		{[]string{"collect", "--source", "gh", "--db", "x.db"}, exitError, "GITHUB_TOKEN não definido"},
 		{[]string{"collect", "--source", "reddit"}, exitUsage, "--source \"reddit\" inválida"},
-		{[]string{"report", "--no-ai", "--week", "2026-48"}, exitError, "não implementado"},
-		{[]string{"report", "--week", "2026-60"}, exitUsage, "01 a 53"},
+		{[]string{"report", "--week", "2026-60"}, exitUsage, "não existe"},
+		{[]string{"report", "--week", "2025-53"}, exitUsage, "não existe"},
 		{[]string{"report", "--week", "48"}, exitUsage, "use AAAA-WW"},
 		{[]string{"export", "--week", "2026-48"}, exitError, "não implementado"},
 		{[]string{"import", "--week", "2026-48", "resposta.json"}, exitError, "não implementado"},
@@ -117,21 +117,6 @@ func TestBadConfigFails(t *testing.T) {
 	code, _, errOut := run(t, "migrate", "--config", cfg, "--db", filepath.Join(dir, "x.db"))
 	if code != exitError || !strings.Contains(errOut, "não suportado") {
 		t.Errorf("code=%d stderr=%q", code, errOut)
-	}
-}
-
-func TestFormatting(t *testing.T) {
-	if got := groupThousands(1234567); got != "1.234.567" {
-		t.Errorf("groupThousands = %q", got)
-	}
-	if got := groupThousands(999); got != "999" {
-		t.Errorf("groupThousands = %q", got)
-	}
-	if got := humanBytes(1536); got != "1,5 KiB" {
-		t.Errorf("humanBytes = %q", got)
-	}
-	if got := humanBytes(200 << 20); got != "200,0 MiB" {
-		t.Errorf("humanBytes = %q", got)
 	}
 }
 

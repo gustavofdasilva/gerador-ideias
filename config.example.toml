@@ -200,3 +200,17 @@ group_model = "combo-agrupar"
 score_model = "combo-pontuar"
 # Limite de tokens (entrada + saída) por semana ISO, para preservar as cotas gratuitas.
 weekly_token_limit = 500000
+
+# ---------------------------------------------------------------------------
+# Relatório semanal (design, seção 7)
+# ---------------------------------------------------------------------------
+[report]
+# Pasta dos relatórios AAAA-WW.md, relativa à pasta onde o comando roda
+# ("~" é expandido). O F7 lê os relatórios de reports/ no repositório.
+dir = "reports"
+# Tamanho das listas: o relatório deve ser lido em poucos minutos.
+top_candidates = 10
+top_keywords = 15
+top_brands = 15
+# Termos com menos ocorrências na semana não entram em "palavras-chave em alta".
+min_keyword_count = 3

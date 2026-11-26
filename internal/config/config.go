@@ -29,6 +29,7 @@ type Config struct {
 	Collect   Collect  `toml:"collect"`
 	Sources   Sources  `toml:"sources"`
 	Keywords  Keywords `toml:"keywords"`
+	Report    Report   `toml:"report"`
 
 	// Source é de onde a configuração veio: o caminho do arquivo ou "embutido".
 	Source string `toml:"-"`
@@ -62,6 +63,19 @@ type Brands struct {
 
 // BrandPlaceholder marca a posição da marca num padrão.
 const BrandPlaceholder = "{marca}"
+
+// Report controla o relatório semanal (design, seção 7).
+type Report struct {
+	Dir           string `toml:"dir"` // pasta dos AAAA-WW.md ("~" é expandido)
+	TopCandidates int    `toml:"top_candidates"`
+	TopKeywords   int    `toml:"top_keywords"`
+	TopBrands     int    `toml:"top_brands"`
+	// Termos com menos ocorrências que isso na semana não entram em "em alta".
+	MinKeywordCount int `toml:"min_keyword_count"`
+}
+
+// ResolvedDir devolve Dir com "~" expandido.
+func (r Report) ResolvedDir() (string, error) { return ExpandHome(r.Dir) }
 
 // Keywords controla a contagem de palavras-chave (n-gramas) em daily_terms.
 type Keywords struct {
@@ -243,149 +257,6 @@ func (c *Config) normalize() {
 		phrases[strings.ToLower(lang)] = norm
 	}
 	c.Pain.Phrases = phrases
-}
-
-// Validate confere as regras que o resto do programa assume.
-func (c *Config) Validate() error {
-	var errs []error
-	add := func(format string, args ...any) { errs = append(errs, fmt.Errorf(format, args...)) }
-
-	if strings.TrimSpace(c.DBPath) == "" {
-		add("db_path vazio")
-	}
-	if len(c.Languages) == 0 {
-		add("languages vazio")
-	}
-	enabled := map[string]bool{}
-	for _, l := range c.Languages {
-		if !contains(SupportedLanguages, l) {
-			add("idioma %q não suportado (use: %s)", l, strings.Join(SupportedLanguages, ", "))
-		}
-		if enabled[l] {
-			add("idioma %q repetido", l)
-		}
-		enabled[l] = true
-	}
-
-	if c.Pain.EngagementBonusMax < 0 {
-		add("pain.engagement_bonus_max negativo")
-	}
-	if len(c.Pain.Weights) == 0 {
-		add("pain.weights vazio")
-	}
-	for typ, w := range c.Pain.Weights {
-		if w <= 0 {
-			add("pain.weights.%s precisa ser maior que zero", typ)
-		}
-	}
-	for _, lang := range sortedKeys(c.Pain.Phrases) {
-		if !enabled[lang] {
-			add("pain.phrases.%s: idioma fora de languages", lang)
-		}
-		for _, typ := range sortedKeys(c.Pain.Phrases[lang]) {
-			if _, ok := c.Pain.Weights[typ]; !ok {
-				add("pain.phrases.%s.%s: tipo sem peso em pain.weights", lang, typ)
-			}
-		}
-	}
-	for _, lang := range c.Languages {
-		if countPhrases(c.Pain.Phrases[lang]) == 0 {
-			add("idioma %q sem frases de dor em pain.phrases.%s", lang, lang)
-		}
-	}
-	if c.Pain.MinScore <= 0 {
-		add("pain.min_score precisa ser maior que zero")
-	}
-	if c.Pain.BrandBonus < 0 {
-		add("pain.brand_bonus negativo")
-	}
-	for _, typ := range c.Pain.BrandRequired {
-		if _, ok := c.Pain.Weights[typ]; !ok {
-			add("pain.brand_required: tipo %q sem peso em pain.weights", typ)
-		}
-	}
-	for _, lang := range sortedKeys(c.Pain.Exclude) {
-		if !enabled[lang] {
-			add("pain.exclude.%s: idioma fora de languages", lang)
-		}
-	}
-
-	for _, lang := range sortedKeys(c.Brands.Patterns) {
-		if !enabled[lang] {
-			add("brands.patterns.%s: idioma fora de languages", lang)
-		}
-		for _, p := range c.Brands.Patterns[lang] {
-			before, after, ok := strings.Cut(p, BrandPlaceholder)
-			if !ok || strings.Contains(after, BrandPlaceholder) {
-				add("brands.patterns.%s: %q precisa ter exatamente um %s", lang, p, BrandPlaceholder)
-			} else if strings.TrimSpace(before) == "" && strings.TrimSpace(after) == "" {
-				add("brands.patterns.%s: %q precisa de texto além de %s", lang, p, BrandPlaceholder)
-			}
-		}
-	}
-
-	if k := c.Keywords; k.MaxN < 1 || k.MaxN > 3 {
-		add("keywords.max_n precisa ir de 1 a 3")
-	}
-	if c.Keywords.MaxPerItem < 1 {
-		add("keywords.max_per_item precisa ser pelo menos 1")
-	}
-	if c.Keywords.MinCount < 1 {
-		add("keywords.min_count precisa ser pelo menos 1")
-	}
-
-	r := c.Rubric
-	for name, w := range map[string]int{
-		"frequency": r.Frequency, "payment": r.Payment, "distribution": r.Distribution, "b2b": r.B2B, "global": r.Global,
-		"solo": r.Solo, "sellability": r.Sellability, "infra": r.Infra,
-	} {
-		if w < 0 {
-			add("rubric.%s negativo", name)
-		}
-	}
-	if s := r.Sum(); s != 100 {
-		add("os pesos de rubric somam %d, precisam somar 100", s)
-	}
-
-	if strings.TrimSpace(c.AI.GroupModel) == "" {
-		add("ai.group_model vazio")
-	}
-	if strings.TrimSpace(c.AI.ScoreModel) == "" {
-		add("ai.score_model vazio")
-	}
-	if c.AI.WeeklyTokenLimit <= 0 {
-		add("ai.weekly_token_limit precisa ser maior que zero")
-	}
-
-	if c.Collect.InitialLookbackDays < 1 {
-		add("collect.initial_lookback_days precisa ser pelo menos 1")
-	}
-	if c.Collect.OverlapMinutes < 0 {
-		add("collect.overlap_minutes negativo")
-	}
-	for _, src := range []struct {
-		name  string
-		langs []string
-	}{
-		{"hn", c.Sources.HN.Languages},
-		{"bsky", c.Sources.Bsky.Languages},
-		{"gh", c.Sources.GH.Languages},
-	} {
-		if len(src.langs) == 0 {
-			add("sources.%s.languages vazio", src.name)
-		}
-		for _, l := range src.langs {
-			if !enabled[l] {
-				add("sources.%s.languages: idioma %q fora de languages", src.name, l)
-			}
-		}
-	}
-	for _, l := range c.Sources.GH.Labels {
-		if strings.TrimSpace(l) == "" {
-			add("sources.gh.labels: label vazia")
-		}
-	}
-	return errors.Join(errs...)
 }
 
 // ResolvedDBPath devolve db_path com "~" expandido.

@@ -9,15 +9,15 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"regexp"
-	"strings"
 	"syscall"
 	"time"
 
 	"gerador-ideias/internal/collect"
 	"gerador-ideias/internal/config"
 	"gerador-ideias/internal/db"
+	"gerador-ideias/internal/fmtx"
 	"gerador-ideias/internal/secrets"
+	"gerador-ideias/internal/telegram"
 )
 
 // Códigos de saída.
@@ -34,7 +34,8 @@ Uso:
 
 Comandos:
   collect [--source hn|bsky|gh|all]       coleta diária, filtra e agrega
-  report  [--week AAAA-WW] [--no-ai]      relatório semanal (IA via OmniRoute)
+  report  [--week AAAA-WW] [--no-ai] [--no-telegram]
+                                          relatório semanal em reports/, enviado pelo Telegram
   export  [--week AAAA-WW]                pacote para o Claude web (modo manual)
   import  [--week AAAA-WW] resposta.json  importa a resposta do Claude web
   stats                                   saúde: tamanho do banco, linhas, últimas coletas
@@ -54,6 +55,8 @@ type App struct {
 	Now    func() time.Time
 	// Collectors, se definido, substitui os coletores reais (testes).
 	Collectors func(*env) map[string]collect.Collector
+	// Telegram, se definido, cria o cliente do Telegram (testes).
+	Telegram func(token, chatID string) *telegram.Client
 }
 
 // Run executa a linha de comando (sem o nome do programa) e devolve o código de saída.
@@ -174,25 +177,6 @@ func (a *App) load(c *common) (*env, error) {
 	return &env{cfg: cfg, secrets: sec, dbPath: path}, nil
 }
 
-var weekRe = regexp.MustCompile(`^(\d{4})-(\d{2})$`)
-
-// validWeek aceita "" (semana corrente, definida na fase que usar) ou AAAA-WW.
-func validWeek(w string) error {
-	if w == "" {
-		return nil
-	}
-	m := weekRe.FindStringSubmatch(w)
-	if m == nil {
-		return usagef("--week %q inválida: use AAAA-WW (ex.: 2026-48)", w)
-	}
-	var n int
-	fmt.Sscanf(m[2], "%d", &n)
-	if n < 1 || n > 53 {
-		return usagef("--week %q inválida: semana deve ir de 01 a 53", w)
-	}
-	return nil
-}
-
 var validSources = []string{"hn", "bsky", "gh", "all"}
 
 var errNotImplemented = errors.New("não implementado")
@@ -200,22 +184,6 @@ var errNotImplemented = errors.New("não implementado")
 func (a *App) notImplemented(cmd, phase string) error {
 	fmt.Fprintf(a.Stdout, "ideias %s: não implementado (previsto para a fase %s)\n", cmd, phase)
 	return errNotImplemented
-}
-
-func (a *App) report(_ context.Context, args []string) error {
-	fs, _ := a.newFlagSet("report", "report [--week AAAA-WW] [--no-ai]")
-	week := fs.String("week", "", "semana ISO a gerar (padrão: a semana corrente)")
-	fs.Bool("no-ai", false, "gera só os rankings locais, sem IA")
-	if err := parse(fs, args); err != nil {
-		return err
-	}
-	if fs.NArg() > 0 {
-		return usagef("argumento inesperado: %q", fs.Arg(0))
-	}
-	if err := validWeek(*week); err != nil {
-		return err
-	}
-	return a.notImplemented("report", "F4–F5")
 }
 
 func (a *App) export(_ context.Context, args []string) error {
@@ -313,11 +281,11 @@ func (a *App) printStats(e *env, s *db.Stats) {
 	w := a.Stdout
 	fmt.Fprintf(w, "Config:  %s\n", e.cfg.Source)
 	fmt.Fprintf(w, "Banco:   %s\n", s.Path)
-	size := "Tamanho: " + humanBytes(s.FileBytes)
+	size := "Tamanho: " + fmtx.Bytes(s.FileBytes)
 	if s.WALBytes > 0 {
-		size += fmt.Sprintf(" (+ WAL %s)", humanBytes(s.WALBytes))
+		size += fmt.Sprintf(" (+ WAL %s)", fmtx.Bytes(s.WALBytes))
 	}
-	fmt.Fprintf(w, "%s · em uso pelo SQLite: %s\n", size, humanBytes(s.PageBytes))
+	fmt.Fprintf(w, "%s · em uso pelo SQLite: %s\n", size, fmtx.Bytes(s.PageBytes))
 	fmt.Fprintf(w, "Esquema: versão %d", s.SchemaVersion)
 	if s.Pending > 0 {
 		fmt.Fprintf(w, " · %d migração(ões) pendente(s): rode \"ideias migrate\"", s.Pending)
@@ -329,7 +297,7 @@ func (a *App) printStats(e *env, s *db.Stats) {
 
 	fmt.Fprintln(w, "\nLinhas por tabela:")
 	for _, t := range s.Tables {
-		fmt.Fprintf(w, "  %-14s %10s\n", t.Table, groupThousands(t.Rows))
+		fmt.Fprintf(w, "  %-14s %10s\n", t.Table, fmtx.Int(t.Rows))
 	}
 
 	fmt.Fprintln(w, "\nItens processados por fonte (histórico inteiro):")
@@ -338,19 +306,19 @@ func (a *App) printStats(e *env, s *db.Stats) {
 	}
 	for _, sc := range s.BySource {
 		fmt.Fprintf(w, "  %-5s %10s itens · %s candidatos (%s)\n", sc.Source,
-			groupThousands(sc.Items), groupThousands(sc.Candidates), percent(sc.Rate()))
+			fmtx.Int(sc.Items), fmtx.Int(sc.Candidates), fmtx.Percent(sc.Rate()))
 	}
 	if len(s.Rates) > 0 {
 		fmt.Fprintf(w, "\nTaxa de candidatos por fonte e idioma (últimos %d dias):\n", db.RateDays)
 		for _, sc := range s.Rates {
 			fmt.Fprintf(w, "  %-5s %-4s %10s itens · %8s candidatos (%s)\n", sc.Source, sc.Lang,
-				groupThousands(sc.Items), groupThousands(sc.Candidates), percent(sc.Rate()))
+				fmtx.Int(sc.Items), fmtx.Int(sc.Candidates), fmtx.Percent(sc.Rate()))
 		}
 	}
 	if s.DataDays > 0 {
 		yearly := s.MonthlyGrowth * 12
 		fmt.Fprintf(w, "\nCrescimento estimado: %s/mês (%s/ano; meta < 200 MiB/ano) · base: %d dia(s) de posts\n",
-			humanBytes(s.MonthlyGrowth), humanBytes(yearly), s.DataDays)
+			fmtx.Bytes(s.MonthlyGrowth), fmtx.Bytes(yearly), s.DataDays)
 		if s.DataDays < 7 {
 			fmt.Fprintln(w, "  (estimativa grosseira: menos de 7 dias de dados)")
 		}
@@ -370,7 +338,7 @@ func (a *App) printStats(e *env, s *db.Stats) {
 	}
 
 	fmt.Fprintf(w, "\nIA no mês: %s tokens (limite semanal: %s)\n",
-		groupThousands(s.MonthTokens), groupThousands(e.cfg.AI.WeeklyTokenLimit))
+		fmtx.Int(s.MonthTokens), fmtx.Int(e.cfg.AI.WeeklyTokenLimit))
 
 	fmt.Fprint(w, "Segredos:")
 	for _, k := range secrets.Keys {
@@ -381,38 +349,4 @@ func (a *App) printStats(e *env, s *db.Stats) {
 		fmt.Fprintf(w, "\n  %-19s %s", k, mark)
 	}
 	fmt.Fprintln(w)
-}
-
-func humanBytes(n int64) string {
-	const unit = 1024
-	if n < unit {
-		return fmt.Sprintf("%d B", n)
-	}
-	div, exp := int64(unit), 0
-	for m := n / unit; m >= unit; m /= unit {
-		div *= unit
-		exp++
-	}
-	return strings.Replace(fmt.Sprintf("%.1f %ciB", float64(n)/float64(div), "KMGT"[exp]), ".", ",", 1)
-}
-
-func groupThousands(n int64) string {
-	s := fmt.Sprintf("%d", n)
-	neg := strings.HasPrefix(s, "-")
-	s = strings.TrimPrefix(s, "-")
-	var b strings.Builder
-	for i, r := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			b.WriteByte('.')
-		}
-		b.WriteRune(r)
-	}
-	if neg {
-		return "-" + b.String()
-	}
-	return b.String()
-}
-
-func percent(f float64) string {
-	return strings.Replace(fmt.Sprintf("%.1f%%", f*100), ".", ",", 1)
 }

@@ -4,7 +4,7 @@ Coletor leve que roda no celular (Termux), lê conversas públicas do Hacker New
 
 O design completo fica em [docs/design.md](docs/design.md), e as fases de implementação em [docs/roadmap.md](docs/roadmap.md).
 
-> Estado atual: **F3**. `migrate`, `stats` e `collect` (Hacker News, Bluesky e GitHub Issues, com o filtro local de candidatos) funcionam; `report`, `export` e `import` ainda respondem "não implementado".
+> Estado atual: **F4**. `migrate`, `stats`, `collect` (Hacker News, Bluesky e GitHub Issues, com o filtro local de candidatos) e `report` sem IA, com envio pelo Telegram, funcionam. A IA do relatório e `export`/`import` chegam na F5.
 
 ## Compilar no PC
 
@@ -72,6 +72,28 @@ Cada item coletado passa pelo processamento local, sem IA: idioma, frases de dor
 - O país é sempre uma **estimativa**, feita a partir de moeda, TLD de links, países e cidades citados e idioma, com `desconhecido` como padrão.
 
 Para calibrar, edite no `config.toml` as frases (`[pain.phrases.*]`), as exclusões de falsos positivos (`[pain.exclude]`), os tipos que exigem marca (`pain.brand_required`), os padrões de marca (`[brands.patterns]`) e `[keywords]`, que controla o tamanho do banco. O `ideias stats` mostra a taxa de candidatos por fonte e idioma e o crescimento estimado do banco por mês.
+
+## Relatório semanal
+
+```sh
+bin/ideias report --no-ai                     # semana corrente → reports/AAAA-WW.md + Telegram
+bin/ideias report --no-ai --week 2026-47      # regera uma semana passada
+bin/ideias report --no-ai --no-telegram       # só o arquivo, sem enviar
+```
+
+O relatório traz:
+- os números da coleta da semana;
+- os candidatos com maior `pain_score`, com link;
+- as palavras-chave em alta, contra a média das 4 semanas anteriores;
+- as marcas mais citadas;
+- os recortes por idioma e por país estimado;
+- a saúde da coleta: dias sem coleta, execuções com erro e tamanho do banco.
+
+O tamanho das listas fica em `[report]` no `config.toml`.
+
+**Telegram:** defina `TELEGRAM_BOT_TOKEN` (do @BotFather) e `TELEGRAM_CHAT_ID`. O comando envia um resumo e o `.md` como documento.
+- Sem essas variáveis, só gera o arquivo e avisa.
+- Se o envio falhar, o arquivo continua gerado e o comando sai com código 1.
 
 ## Credenciais das fontes
 
