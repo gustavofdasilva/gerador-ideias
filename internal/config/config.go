@@ -30,6 +30,8 @@ type Config struct {
 	Sources   Sources  `toml:"sources"`
 	Keywords  Keywords `toml:"keywords"`
 	Report    Report   `toml:"report"`
+	Alerts    Alerts   `toml:"alerts"`
+	Backup    Backup   `toml:"backup"`
 
 	// Source é de onde a configuração veio: o caminho do arquivo ou "embutido".
 	Source string `toml:"-"`
@@ -139,7 +141,31 @@ type Collect struct {
 	InitialLookbackDays int `toml:"initial_lookback_days"`
 	// Re-busca os últimos N minutos da janela anterior (atraso de indexação).
 	OverlapMinutes int `toml:"overlap_minutes"`
+	// Sources: fontes de "collect --source all" (e as que o check vigia).
+	Sources []string `toml:"sources"`
 }
+
+// KnownSources são as fontes que o binário sabe coletar.
+var KnownSources = []string{"hn", "bsky", "gh"}
+
+// Alerts controla os alertas do "ideias check".
+type Alerts struct {
+	// FailingDays: alerta se a fonte falhou em todos os N últimos dias com execução.
+	FailingDays int `toml:"failing_days"`
+	// StaleHours: alerta se nenhuma fonte coletou com sucesso há mais que isso.
+	StaleHours int `toml:"stale_hours"`
+	// RepeatHours: o mesmo alerta só é repetido depois desse intervalo.
+	RepeatHours int `toml:"repeat_hours"`
+}
+
+// Backup controla o backup feito depois de cada relatório.
+type Backup struct {
+	Dir  string `toml:"dir"`  // vazio desliga o backup automático
+	Keep int    `toml:"keep"` // quantos backups manter
+}
+
+// ResolvedDir devolve Dir com "~" expandido.
+func (b Backup) ResolvedDir() (string, error) { return ExpandHome(b.Dir) }
 
 // InitialLookback devolve InitialLookbackDays como duração.
 func (c Collect) InitialLookback() time.Duration {

@@ -76,7 +76,15 @@ func (a *App) collect(ctx context.Context, args []string) error {
 	}
 	collectors := factory(e)
 
-	wanted := sourceOrder
+	// "all" = as fontes de collect.sources, na ordem padrão.
+	var wanted []string
+	for _, s := range sourceOrder {
+		for _, enabled := range e.cfg.Collect.Sources {
+			if s == enabled {
+				wanted = append(wanted, s)
+			}
+		}
+	}
 	if *source != "all" {
 		wanted = []string{*source}
 	}

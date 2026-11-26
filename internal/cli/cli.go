@@ -42,6 +42,8 @@ Comandos:
                                           importa a resposta do Claude web e gera o relatório
   stats                                   saúde: tamanho do banco, linhas, últimas coletas
   migrate                                 aplica as migrações do banco
+  check   [--no-telegram]                 alertas: fonte falhando dias seguidos, coleta parada
+  backup                                  backup comprimido do banco (roda sozinho após o relatório)
 
 Opções de todos os comandos:
   --config arquivo   config.toml a usar (padrão: ./config.toml ou ~/.config/ideias/config.toml)
@@ -93,6 +95,10 @@ func (a *App) Run(ctx context.Context, args []string) int {
 		run = a.stats
 	case "migrate":
 		run = a.migrate
+	case "check":
+		run = a.check
+	case "backup":
+		run = a.backup
 	case "help", "-h", "--help":
 		fmt.Fprint(a.Stdout, usage)
 		return exitOK

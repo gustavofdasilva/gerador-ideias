@@ -175,6 +175,21 @@ func (v *validator) collect() {
 	if v.c.Collect.OverlapMinutes < 0 {
 		v.add("collect.overlap_minutes negativo")
 	}
+	if len(v.c.Collect.Sources) == 0 {
+		v.add("collect.sources vazio")
+	}
+	for _, s := range v.c.Collect.Sources {
+		if !contains(KnownSources, s) {
+			v.add("collect.sources: fonte %q desconhecida (use: %s)", s, strings.Join(KnownSources, ", "))
+		}
+	}
+	a := v.c.Alerts
+	v.atLeastOne("alerts.failing_days", a.FailingDays)
+	v.atLeastOne("alerts.stale_hours", a.StaleHours)
+	v.atLeastOne("alerts.repeat_hours", a.RepeatHours)
+	if v.c.Backup.Dir != "" {
+		v.atLeastOne("backup.keep", v.c.Backup.Keep)
+	}
 }
 
 func (v *validator) sources() {

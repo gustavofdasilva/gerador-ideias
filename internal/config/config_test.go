@@ -35,6 +35,12 @@ db_path = "x.db"
 languages = ["en"]
 [pain]
 min_score = 1.0
+[alerts]
+failing_days = 2
+stale_hours = 48
+repeat_hours = 24
+[backup]
+dir = ""
 [report]
 dir = "reports"
 export_dir = "export"
@@ -75,6 +81,7 @@ manual_part_chars = 120000
 [collect]
 initial_lookback_days = 7
 overlap_minutes = 60
+sources = ["hn", "bsky", "gh"]
 [sources.hn]
 languages = ["EN"]
 [sources.bsky]

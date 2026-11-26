@@ -158,6 +158,30 @@ initial_lookback_days = 7
 # Re-busca os últimos N minutos da janela anterior, para pegar posts que a
 # fonte indexou com atraso. Os repetidos são descartados.
 overlap_minutes = 60
+# Fontes coletadas por "collect --source all" e vigiadas pelo "check". Tire
+# daqui uma fonte que você não usa (ex.: sem credenciais do Bluesky), senão
+# ela gera um alerta de falha por dia.
+sources = ["hn", "bsky", "gh"]
+
+# ---------------------------------------------------------------------------
+# Alertas pelo Telegram ("ideias check", design 5.7)
+# ---------------------------------------------------------------------------
+[alerts]
+# Alerta se a fonte falhou em todas as execuções dos N últimos dias com execução.
+failing_days = 2
+# Alerta se nenhuma fonte coletou com sucesso há mais que isso.
+stale_hours = 48
+# Enquanto o problema continuar, o mesmo alerta só se repete depois disso.
+repeat_hours = 24
+
+# ---------------------------------------------------------------------------
+# Backup (design 5.6): depois de cada relatório e com "ideias backup"
+# ---------------------------------------------------------------------------
+[backup]
+# Pasta compartilhada do Android (sobrevive a reinstalar o Termux; precisa de
+# termux-setup-storage). Deixe vazio para desligar o backup automático.
+dir = "~/storage/shared/ideias-backup"
+keep = 4
 
 [sources.hn]
 # Idiomas cujas frases de dor são buscadas no Hacker News. Lá quase tudo é em

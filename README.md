@@ -4,7 +4,7 @@ Coletor leve que roda no celular (Termux), lê conversas públicas do Hacker New
 
 O design completo fica em [docs/design.md](docs/design.md), e as fases de implementação em [docs/roadmap.md](docs/roadmap.md).
 
-> Estado atual: **F5**. Todos os comandos funcionam: `collect` (Hacker News, Bluesky e GitHub Issues), `report` com IA via OmniRoute (ou `--no-ai`), `export`/`import` para o Claude web, `stats` e `migrate`. Falta a operação no Termux (F6).
+> Estado atual: **F6**. Tudo implementado, inclusive a operação no Termux (cron, wake lock, alertas e backup). Próximo passo: rodar no celular e, depois de ~4 semanas, calibrar (F7).
 
 ## Compilar no PC
 
@@ -23,16 +23,68 @@ CGO_ENABLED=0 go build -o bin/ideias ./cmd/ideias
 CGO_ENABLED=0 GOOS=android GOARCH=arm64 go build -o bin/ideias-android-arm64 ./cmd/ideias
 ```
 
-## Compilar no Termux
+## No celular (Termux)
+
+### Instalar
+
+1. Instale o **Termux** e o **Termux:API** pela mesma loja (F-Droid ou GitHub). Não misture com a versão da Play Store. O Termux:API é o que faz o wake lock funcionar.
+2. **Desative a otimização de bateria do Termux**: Configurações do Android › Apps › Termux › Bateria › "Sem restrição". Sem isso, o Android mata o cron com a tela desligada. Em alguns fabricantes (Xiaomi, Samsung) também é preciso liberar o "início automático".
+3. No Termux:
 
 ```sh
-pkg install golang git make
-git clone <url-do-repositório> gerador-ideias
-cd gerador-ideias
-make build
+pkg install -y git
+git clone <url-do-repositório> ~/gerador-ideias
+cd ~/gerador-ideias
+bash scripts/termux-setup.sh          # pacotes, crond, pastas, config, compilação
+# se ele pedir: feche e abra o Termux e rode de novo
+nano ~/.config/ideias/env             # tokens do Bluesky, GitHub e Telegram
+nano ~/.config/ideias/config.toml     # [ai] modelos do OmniRoute, [collect] sources
+bash scripts/termux-setup.sh --cron   # instala o crontab
 ```
 
-Para atualizar depois: `git pull && make build`.
+O setup pode ser rodado quantas vezes quiser: ele não sobrescreve `config.toml` nem `env` que já existam.
+
+**Horários.** O padrão é coleta todo dia às 03:30, relatório aos domingos às 09:00 e verificação de saúde a cada 6 h, sempre na hora do celular. Para mudar, passe as variáveis ao instalar o crontab, por exemplo `COLLECT_AT="15 4" REPORT_AT="30 8" bash scripts/termux-setup.sh --cron`. Confira com `crontab -l`.
+
+### OmniRoute
+
+O OmniRoute já roda no Termux e o `ideias` não instala, não configura, não liga e não desliga o gateway. No `~/.config/ideias/env`:
+- `OMNIROUTE_BASE_URL`: só se não for o padrão `http://localhost:20128/v1`.
+- `OMNIROUTE_API_KEY`: só se o seu OmniRoute exigir chave.
+
+No `config.toml`, em `[ai]`, `group_model` e `score_model` recebem os nomes exatos de modelos ou combos do seu OmniRoute. A lista de modelos disponíveis sai em `curl http://localhost:20128/v1/models`. Para agrupar, um modelo rápido e barato basta. Para pontuar, vale um modelo melhor, porque é uma única chamada por semana.
+
+### Atualizar
+
+```sh
+cd ~/gerador-ideias && git pull && make build
+```
+
+O banco é migrado sozinho na próxima execução.
+
+### Logs e saúde
+
+- O cron chama tudo por `scripts/run.sh`. Ele segura o wake lock durante a execução e sempre o solta no fim, mesmo com erro ou SIGTERM do Android. Também impede duas execuções ao mesmo tempo e grava o log em `~/.local/state/ideias/ideias.log`, rotacionado em 1 MiB e mantendo 5 arquivos antigos.
+- Para ver as últimas linhas do log: `tail -n 50 ~/.local/state/ideias/ideias.log`.
+- Para ver os números e a última coleta de cada fonte: `bin/ideias stats`.
+- `bin/ideias check` avisa pelo Telegram em dois casos: uma fonte falhou em todas as coletas de 2 dias seguidos, ou nenhuma coleta deu certo nas últimas 48 h. Ele roda pelo cron e depois de cada coleta. O mesmo aviso só se repete depois de 24 h, e quando o problema some chega um "resolvido". Fontes que você não usa saem de `[collect] sources`.
+
+### Backup e restauração
+
+Depois de cada relatório (e com `bin/ideias backup`), o banco é copiado com `VACUUM INTO`, comprimido em `~/storage/shared/ideias-backup/ideias-AAAAMMDD-HHMMSS.db.gz` e só os 4 mais novos ficam. A pasta fica no armazenamento do Android e sobrevive a reinstalar o Termux.
+
+Para restaurar:
+
+```sh
+crontab -l > ~/crontab.bak && crontab -r            # pausa o cron
+DB=~/.local/share/ideias/ideias.db
+rm -f "$DB" "$DB-wal" "$DB-shm"
+gunzip -c ~/storage/shared/ideias-backup/ideias-AAAAMMDD-HHMMSS.db.gz > "$DB"
+~/gerador-ideias/bin/ideias stats                   # confere
+crontab ~/crontab.bak                               # volta o cron
+```
+
+A coleta seguinte retoma do cursor que estava no backup e recupera o período que faltou.
 
 ## Configurar
 

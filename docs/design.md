@@ -81,7 +81,11 @@ ideias export  [--week AAAA-WW]             # pacote para o Claude web (manual)
 ideias import  [--week AAAA-WW] resposta.json   # traz a resposta do Claude web e gera o relatório
 ideias stats                                # saúde: tamanho do banco, última coleta por fonte, custo de IA do mês
 ideias migrate                              # aplica migrações do banco
+ideias check                                # alertas pelo Telegram: fonte falhando 2 dias seguidos, nenhuma coleta há 48 h
+ideias backup                               # backup comprimido do banco (também roda sozinho depois de cada relatório)
 ```
+
+No Termux, o cron chama os comandos por `scripts/run.sh`, que segura o wake lock durante a execução e grava um log rotacionado.
 
 ### 5.1 Fluxo diário (`collect`)
 1. Para cada fonte, lê o cursor (último timestamp ou ID) e busca tudo desde então, recuperando dias perdidos.
@@ -231,3 +235,4 @@ Dias sem coleta, erros por fonte, tamanho do banco
 | 2026-11-26 | IA via OmniRoute; Anthropic só pelo Claude web (export/import manual) | Custo zero; nenhuma chave de API paga |
 | 2026-11-26 | Novo critério "Distribuição automática" (15%) e penalidade para venda com prospecção manual; pesos de frequência, B2B e vendabilidade caem para 10% | O dono não quer caçar leads manualmente; quer divulgar por SEO ou conteúdo automatizado |
 | 2026-11-26 | OmniRoute é infraestrutura externa já existente (sempre ativo no Termux); o projeto só consome a API | Já usado em outros projetos do dono |
+| 2026-11-26 | Novos subcomandos `check` (alertas, pelo cron a cada 6 h e depois de cada coleta) e `backup` (em Go, sem depender do binário sqlite3) | Um coletor parado não consegue alertar sobre a própria parada; o backup precisa rodar igual no PC e no celular |

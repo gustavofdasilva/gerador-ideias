@@ -192,6 +192,13 @@ func (a *App) finish(ctx context.Context, s *session, command string, out output
 		return err
 	}
 	fmt.Fprintf(a.Stdout, "relatório gerado: %s\n", path)
+	// Backup depois de cada relatório (design 5.6). Uma falha aqui não
+	// invalida o relatório: só avisa (o check e o log mostram).
+	if s.e.cfg.Backup.Dir != "" {
+		if berr := a.runBackup(ctx, s); berr != nil {
+			fmt.Fprintf(a.Stderr, "aviso: %v\n", berr)
+		}
+	}
 	if sendErr != nil {
 		return fmt.Errorf("o relatório ficou só no arquivo local: %w", sendErr)
 	}
