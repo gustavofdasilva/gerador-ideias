@@ -94,6 +94,23 @@ seed = [
 ]
 
 # ---------------------------------------------------------------------------
+# Coleta (design, seção 5.1)
+# ---------------------------------------------------------------------------
+[collect]
+# Sem cursor (primeira execução ou cursor apagado), busca os últimos N dias.
+# Com cursor, busca tudo desde a última coleta bem-sucedida, por maior que
+# seja o intervalo (celular desligado, processo morto pelo Android etc.).
+initial_lookback_days = 7
+# Re-busca os últimos N minutos da janela anterior, para pegar posts que a
+# fonte indexou com atraso. Os repetidos são descartados.
+overlap_minutes = 60
+
+[sources.hn]
+# Idiomas cujas frases de dor são buscadas no Hacker News. Lá quase tudo é em
+# inglês; cada frase custa ao menos uma requisição por coleta.
+languages = ["en"]
+
+# ---------------------------------------------------------------------------
 # Rubrica de viabilidade (design, seção 6)
 # ---------------------------------------------------------------------------
 # Pesos em %, a soma precisa dar 100. Cada critério recebe nota de 0 a 5 da IA.

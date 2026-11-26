@@ -1,0 +1,375 @@
+{
+ "exhaustive": {
+  "nbHits": true
+ },
+ "exhaustiveNbHits": true,
+ "hits": [
+  {
+   "_tags": [
+    "comment",
+    "author_autor1",
+    "story_50644341"
+   ],
+   "author": "autor1",
+   "comment_text": "Origins researcher here! Ask any questions you have on this and I’ll answer!<p>Metabolism First is a tantalizing prospect but as yet has never succeeded in actually making any useful compounds. Cycling CO2 and H2 into formate and pyruvate which are then destroyed by the same conditions is insufficient to claim this could act as a compelling alternative to Genetics First. Metabolism must be more than cycling reactions - it must be genetically encoded reaction CONTROL!",
+   "created_at": "2026-11-26T17:30:41Z",
+   "created_at_i": 1795714241,
+   "objectID": "50657467",
+   "parent_id": 50644341,
+   "story_id": 50644341,
+   "story_title": "What Is the Metabolism-First Theory for the Origin of Life?",
+   "story_url": "https://www.quantamagazine.org/what-is-the-metabolism-first-theory-for-the-origin-of-life-20261111/",
+   "updated_at": "2026-11-26T17:32:44Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor2",
+    "story_50654289"
+   ],
+   "author": "autor2",
+   "children": [
+    50657032
+   ],
+   "comment_text": "its good to hear we get to have more alternative to Microsoft Office and other cloud tools for office.<p>I&#x27;m still going to use LibreOffice, but hopefully they&#x27;re going to get better with Nextcloud involvement in this.",
+   "created_at": "2026-11-26T13:40:40Z",
+   "created_at_i": 1795700440,
+   "objectID": "50655221",
+   "parent_id": 50654289,
+   "story_id": 50654289,
+   "story_title": "Euro-Office comes to your desktop with the Nextcloud Office Desktop app",
+   "story_url": "https://nextcloud.com/blog/euro-office-comes-to-your-desktop-with-the-nextcloud-office-desktop-app/",
+   "updated_at": "2026-11-26T16:49:28Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor3",
+    "story_50644817"
+   ],
+   "author": "autor3",
+   "comment_text": "I had it since then too, but moved places many times since then. I think KeePass is a good alternative to an average person. On Apple ecosystem, I don’t bother anymore and recommend people to go with the defaults. They’re good enough.",
+   "created_at": "2026-11-26T11:06:43Z",
+   "created_at_i": 1795691203,
+   "objectID": "50653991",
+   "parent_id": 50651006,
+   "story_id": 50644817,
+   "story_title": "1Password Security Incident",
+   "story_url": "https://1password.com/blog/update-on-nov-2026-security-incident",
+   "updated_at": "2026-11-26T11:10:42Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor4",
+    "story_50651921"
+   ],
+   "author": "autor4",
+   "comment_text": "Theres often no options when the entire industry acts like a monopoly kartel.<p>Also i never expect much from Hochul... all she does is strochul the billionaire class. See all the corporate welfare she does, like the NFL Buffalo Bills stadium welfare, and car insurance welfare, utility company welfare, etc.\nPpl can afford to eat, and she just makes things worse. Blakeman is even worse... so voting doesn&#x27;t help, unless theres a valid alternative to this 1party system of corruption.",
+   "created_at": "2026-11-26T09:51:20Z",
+   "created_at_i": 1795686680,
+   "objectID": "50653521",
+   "parent_id": 50652035,
+   "story_id": 50651921,
+   "story_title": "Cory Doctorow: New York vs. auto-enshittification",
+   "story_url": "https://pluralistic.net/2026/11/25/empire-state-strikes-back/",
+   "updated_at": "2026-11-26T09:52:13Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor5",
+    "story_50651158"
+   ],
+   "author": "autor5",
+   "children": [
+    50654836
+   ],
+   "comment_text": "I think that gives too much credit to Windows.<p>Linux is a strong alternative to Windows because Linux is a strong offering.<p>The list of things you can’t do on it is shrinking every day. You can play your AAA PC games, you can run most apps in general, it’s got all the features you’d want.<p>I don’t even agree with the cynical take that Windows is a bad operating system. It’s generally fine. But Linux, for me, is better.",
+   "created_at": "2026-11-26T08:13:02Z",
+   "created_at_i": 1795680782,
+   "objectID": "50652849",
+   "parent_id": 50652074,
+   "story_id": 50651158,
+   "story_title": "Qualcomm's Oryon 3 Reaches the Top",
+   "story_url": "https://chipsandcheese.com/p/qualcomms-oryon-3-reaches-the-top",
+   "updated_at": "2026-11-26T13:00:16Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor6",
+    "story_50646108"
+   ],
+   "author": "autor6",
+   "comment_text": "Well, the AI labs will need to find an alternative to the system because our current system will not work when AI has replaced all our jobs. And silicon fabs cannot work fast enough to protect themselves against armies of angry people who just lost their jobs.",
+   "created_at": "2026-11-26T07:52:18Z",
+   "created_at_i": 1795679538,
+   "objectID": "50652674",
+   "parent_id": 50648247,
+   "story_id": 50646108,
+   "story_title": "Holy shit holy shit holy shit holy shit: The magnitude of what’s now happening",
+   "story_url": "https://scottaaronson.blog/?p=10379",
+   "updated_at": "2026-11-26T07:56:43Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor7",
+    "story_50651158"
+   ],
+   "author": "autor7",
+   "children": [
+    50652444,
+    50652849
+   ],
+   "comment_text": "&gt; Linux is increasingly being seen as a strong alternative to Windows due to Windows 11’s misplaced priorities.<p>If you tell me that your GUI is the best but you expect to monetise my habits and data, I&#x27;ll use Linux instead.",
+   "created_at": "2026-11-26T06:16:00Z",
+   "created_at_i": 1795673760,
+   "objectID": "50652074",
+   "parent_id": 50651158,
+   "story_id": 50651158,
+   "story_title": "Qualcomm's Oryon 3 Reaches the Top",
+   "story_url": "https://chipsandcheese.com/p/qualcomms-oryon-3-reaches-the-top",
+   "updated_at": "2026-11-26T11:39:42Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor8",
+    "story_50625683"
+   ],
+   "author": "autor8",
+   "comment_text": "&gt; Don&#x27;t suggest networking, I&#x27;m bad at this and don&#x27;t like it much.<p>It&#x27;s not wise to reject the one major obvious alternative to what&#x27;s not working for you.<p>Your options are continuing to spam applications into the endless sea of them, improve your CV to hit buzzwords or look more impressive, find a real human recruiter, or networking (whether that&#x27;s making content or making friends).<p>Only the latter two would be a different approach that might get you somewhere compared to doing the same thing as everyone else, and they do involve talking to people.",
+   "created_at": "2026-11-26T05:48:44Z",
+   "created_at_i": 1795672124,
+   "objectID": "50651918",
+   "parent_id": 50625683,
+   "story_id": 50625683,
+   "story_title": "Does anyone gets hired with himalaya, well found or other remote hiring sites?",
+   "updated_at": "2026-11-26T05:50:56Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor9",
+    "story_50637888"
+   ],
+   "author": "autor9",
+   "comment_text": "I&#x27;ve picked it up over the past few years, and it feels like the base lua vs luajit vs openresty split isn&#x27;t helping. The third party libraries are already sparse and this just ends up splitting the community further. While it&#x27;s like this, we&#x27;re likely to always see it tacked on to some other app than say, an alternative to node or python.<p>(But it really does excel at the tacked-on job.)",
+   "created_at": "2026-11-25T18:23:53Z",
+   "created_at_i": 1795631033,
+   "objectID": "50645592",
+   "parent_id": 50638804,
+   "story_id": 50637888,
+   "story_title": "Lua for data representation (2025)",
+   "story_url": "https://citrons.xyz/journal/2025-07-23",
+   "updated_at": "2026-11-25T20:35:10Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor10",
+    "story_50627783"
+   ],
+   "author": "autor10",
+   "comment_text": "That&#x27;s a common argument in any comparison of SOTA models to cheaper alternatives.<p>In the same spirit, I can perhaps achieve the task without any AI assistance given twice the time of what it takes someone with DeepSeek.<p>This isn&#x27;t currently an alternative to the SOTA models that deliver decent results on complicated work outside of my area of expertise near autonomously. This allows scaling to eg. 10 agents, or at least a single long running session, to handle a large volume of work.",
+   "created_at": "2026-11-25T10:19:30Z",
+   "created_at_i": 1795601970,
+   "objectID": "50640660",
+   "parent_id": 50639942,
+   "story_id": 50627783,
+   "story_title": "GTA 6 Running on Windows",
+   "story_url": "https://twitter.com/raul_bs3/status/2125213756238291075",
+   "updated_at": "2026-11-26T01:00:56Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor11",
+    "story_50639212"
+   ],
+   "author": "autor11",
+   "children": [
+    50640598,
+    50643700
+   ],
+   "comment_text": "Your agents made an alternative to an app because it ask you for money and you ask to other users for money to use it. Nice movement sir.",
+   "created_at": "2026-11-25T09:25:00Z",
+   "created_at_i": 1795598700,
+   "objectID": "50640286",
+   "parent_id": 50639212,
+   "story_id": 50639212,
+   "story_title": "Show HN: Termius was asking me for $120 a year, so I built my own SSH client",
+   "story_url": "https://branchbay.dev/branchshell",
+   "updated_at": "2026-11-25T22:47:25Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor12",
+    "story_50631157"
+   ],
+   "author": "autor12",
+   "comment_text": "During the early 2000s, former Microsoft CEO Steve Ballmer frequently championed &quot;five nines&quot; (99.999%) reliability as a core benchmark for Microsoft&#x27;s enterprise server products, positioning Windows as a cost-effective alternative to traditional mainframes. - <a href=\"https:&#x2F;&#x2F;news.microsoft.com&#x2F;speeches&#x2F;steve-ballmer-speech-transcript-enterprise-net-launch&#x2F;\" rel=\"nofollow\">https:&#x2F;&#x2F;news.microsoft.com&#x2F;speeches&#x2F;steve-ballmer-speech-tra...</a><p>In system architecture, &quot;five nines&quot; equates to 99.999% uptime—allowing for roughly 5 minutes and 15 seconds of unplanned downtime per year.<p>They already had the requirement of only 5 minutes of downtime a year. A one hour SLA is admitting that the first mandate didn&#x27;t work.",
+   "created_at": "2026-11-25T04:46:14Z",
+   "created_at_i": 1795581974,
+   "objectID": "50638587",
+   "parent_id": 50631363,
+   "story_id": 50631157,
+   "story_title": "Microsoft declares 'Code Red' after historic outage, internal memos show",
+   "story_url": "https://www.reuters.com/business/microsoft-declares-code-red-after-historic-outage-internal-memos-show-2026-11-24/",
+   "updated_at": "2026-11-25T17:46:10Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor13",
+    "story_50615481"
+   ],
+   "author": "autor13",
+   "children": [
+    50638442
+   ],
+   "comment_text": "One reason I wouldn&#x27;t sign up for Kagi email (despite being a very happy Kagi user)- they can abandon their projects if they feel that its not getting any traction. This is fine- they did it with their desktop browser. I dont know about their email as well. I will wait till project matures, has more integrations with other services and they come up as a viable alternative to Proton+Fastmail.",
+   "created_at": "2026-11-25T04:06:44Z",
+   "created_at_i": 1795579604,
+   "objectID": "50638336",
+   "parent_id": 50615481,
+   "story_id": 50615481,
+   "story_title": "Kagi Mail (public beta)",
+   "story_url": "https://blog.kagi.com/kagi-mail-public-beta",
+   "updated_at": "2026-11-25T04:23:08Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor14",
+    "story_50605479"
+   ],
+   "author": "autor14",
+   "comment_text": "The alternative to compare to isn&#x27;t someone else&#x27;s shitty pods. The alternative is just coffee grounds. Needs no recycling, you can just put them on your plants, etc.",
+   "created_at": "2026-11-25T00:44:06Z",
+   "created_at_i": 1795567446,
+   "objectID": "50636973",
+   "parent_id": 50630085,
+   "story_id": 50605479,
+   "story_title": "Nespresso's project to reduce grams of coffee per capsule",
+   "story_url": "https://alvinbunk.wordpress.com/2026/11/01/nespresso-project-olympus/",
+   "updated_at": "2026-11-25T00:48:22Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor15",
+    "story_50633856"
+   ],
+   "author": "autor15",
+   "comment_text": "Extremely slowly adapting to changes in culture and technology are a staple of print media, so their policies aren&#x27;t indicative of what&#x27;s happening outside of the big players in their field.<p>For example, it took a few decades for photography to be widely accepted as an alternative to hand-drawn sketches, but <i>The Wall Street Journal</i> held out until after the internet was starting to catch on.(<a href=\"https:&#x2F;&#x2F;www.theatlantic.com&#x2F;technology&#x2F;archive&#x2F;2014&#x2F;07&#x2F;a-design-lesson-from-the-wall-street-journal&#x2F;374059&#x2F;\" rel=\"nofollow\">https:&#x2F;&#x2F;www.theatlantic.com&#x2F;technology&#x2F;archive&#x2F;2014&#x2F;07&#x2F;a-des...</a>)<p>Also, <i>The New Yorker</i> is [in]famous for using 1800&#x27;s-style punctuation, well into the 21st century. (<a href=\"https:&#x2F;&#x2F;www.nytimes.com&#x2F;2025&#x2F;03&#x2F;12&#x2F;style&#x2F;new-yorker-style-guide.html\" rel=\"nofollow\">https:&#x2F;&#x2F;www.nytimes.com&#x2F;2025&#x2F;03&#x2F;12&#x2F;style&#x2F;new-yorker-style-gu...</a>)",
+   "created_at": "2026-11-24T22:28:25Z",
+   "created_at_i": 1795559305,
+   "objectID": "50635715",
+   "parent_id": 50634022,
+   "story_id": 50633856,
+   "story_title": "New York Times Prohibits Photographers from Using Photoshop 2027",
+   "story_url": "https://petapixel.com/2026/11/24/new-york-times-prohibits-photographers-from-using-photoshop-2027/",
+   "updated_at": "2026-11-26T01:15:41Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor16",
+    "story_50608343"
+   ],
+   "author": "autor16",
+   "comment_text": "It&#x27;s also really nice from a scaling and recovery POV, it&#x27;s really really hard to have permanent data destruction.<p>But yes, the IOPS story sadly is (was?) true – we&#x27;re waiting for this since 7+ year to become available.<p>From the paper:<p><pre><code>  &gt; We have implemented SeaStore to meet real-world requirements and have fully integrated it into the Ceph mainline.\n\n</code></pre>\nHmm, latest Ceph 21.2.0 (the .2 is denotes a stable release series in ceph) code named &quot;Umbrella&quot; allows building ceph-crimson OSDs as alternative to the legacy&#x2F;bluestore ones; but it&#x27;s not really fully support just yet, at least not for all relevant workloads. So I&#x27;m wondering if I&#x27;m overlooking something new&#x2F;fresh, or if they mean that the basic work has been integrated. Don&#x27;t get me wrong, that alone is definitively an accomplishment for Ceph&#x27;s non-trivial code base. But especially important core work like auto-scaling placement groups (splits and merges) and the mClock OSD scheduler still are missing, background scrubbing too [0].<p>Latest docs still got it marked as tech-preview: <a href=\"https:&#x2F;&#x2F;docs.ceph.com&#x2F;en&#x2F;latest&#x2F;crimson&#x2F;crimson&#x2F;\" rel=\"nofollow\">https:&#x2F;&#x2F;docs.ceph.com&#x2F;en&#x2F;latest&#x2F;crimson&#x2F;crimson&#x2F;</a><p>[0]: <a href=\"https:&#x2F;&#x2F;ceph.io&#x2F;en&#x2F;developers&#x2F;crimson&#x2F;\" rel=\"nofollow\">https:&#x2F;&#x2F;ceph.io&#x2F;en&#x2F;developers&#x2F;crimson&#x2F;</a>",
+   "created_at": "2026-11-24T19:17:40Z",
+   "created_at_i": 1795547860,
+   "objectID": "50633073",
+   "parent_id": 50632876,
+   "story_id": 50608343,
+   "story_title": "SeaStore: Redesigning Ceph's Storage Back End for CPU-Efficient NVMe Performance",
+   "story_url": "https://dl.acm.org/doi/10.1145/3828523.3857112",
+   "updated_at": "2026-11-25T17:17:55Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor17",
+    "story_50630462"
+   ],
+   "author": "autor17",
+   "children": [
+    50632591
+   ],
+   "comment_text": "This is an alternative to the Mac OS dock UI and the page should start by saying so.",
+   "created_at": "2026-11-24T18:31:13Z",
+   "created_at_i": 1795545073,
+   "objectID": "50632385",
+   "parent_id": 50630462,
+   "story_id": 50630462,
+   "story_title": "Jetty Pro",
+   "story_url": "http://hypercritical.co/2026/11/23/jetty-pro",
+   "updated_at": "2026-11-25T20:29:11Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor18",
+    "story_50616933"
+   ],
+   "author": "autor18",
+   "comment_text": "Where is the company that offers a good alternative to Apple&#x2F;Microsoft&#x2F;Google and has good, easy-to-reach customer service?",
+   "created_at": "2026-11-24T14:37:31Z",
+   "created_at_i": 1795531051,
+   "objectID": "50628875",
+   "parent_id": 50620437,
+   "story_id": 50616933,
+   "story_title": "Apple removed my open-source app from EU App Stores after 9 years",
+   "story_url": "https://github.com/glushchenko/fsnotes/discussions/2056",
+   "updated_at": "2026-11-24T14:40:07Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor19",
+    "story_50622934"
+   ],
+   "author": "autor19",
+   "comment_text": "As mentioned by denkmoon, the issue is that my PC unfortunately cannot do CEC. An alternative to my setup would have been to get a USB-CEC adapter, but it meant even more cables. CEC would definitely be the proper way to do it otherwise!",
+   "created_at": "2026-11-24T14:07:38Z",
+   "created_at_i": 1795529258,
+   "objectID": "50628397",
+   "parent_id": 50623666,
+   "story_id": 50622934,
+   "story_title": "Making a dumb TV just smart enough",
+   "story_url": "https://qsantos.fr/2026/11/19/making-a-dumb-tv-just-smart-enough/",
+   "updated_at": "2026-11-24T15:49:51Z"
+  },
+  {
+   "_tags": [
+    "comment",
+    "author_autor20",
+    "story_50621977"
+   ],
+   "author": "autor20",
+   "comment_text": "Pah, suggesting <i>other</i> drugs as an alternative to alcohol is such a cheap answer.",
+   "created_at": "2026-11-24T14:05:20Z",
+   "created_at_i": 1795529120,
+   "objectID": "50628355",
+   "parent_id": 50623250,
+   "story_id": 50621977,
+   "story_title": "Alcohol use reduces efficacy of immunotherapy by disrupting antitumor immunity",
+   "story_url": "https://www.science.org/doi/10.1126/scisignal.aef1375",
+   "updated_at": "2026-11-24T20:25:43Z"
+  }
+ ],
+ "hitsPerPage": 20,
+ "nbHits": 23,
+ "nbPages": 2,
+ "page": 0,
+ "params": "query=%22alternative+to%22&advancedSyntax=true&tags=%28story%2Ccomment%29&numericFilters=created_at_i%3E1795457839&hitsPerPage=20&page=0&analyticsTags=backend&typoTolerance=false&removeWordsIfNoResults=none",
+ "processingTimeMS": 3,
+ "query": "\"alternative to\"",
+ "serverTimeMS": 6
+}

@@ -8,10 +8,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"regexp"
 	"strings"
+	"syscall"
 	"time"
 
+	"gerador-ideias/internal/collect"
 	"gerador-ideias/internal/config"
 	"gerador-ideias/internal/db"
 	"gerador-ideias/internal/secrets"
@@ -49,11 +52,17 @@ type App struct {
 	Stdout io.Writer
 	Stderr io.Writer
 	Now    func() time.Time
+	// Collectors, se definido, substitui os coletores reais (testes).
+	Collectors func(*env) map[string]collect.Collector
 }
 
 // Run executa a linha de comando (sem o nome do programa) e devolve o código de saída.
+// SIGINT e SIGTERM (o Android encerrando o Termux) cancelam o contexto, para
+// a execução em andamento ser registrada antes de sair.
 func Run(args []string) int {
-	return (&App{Stdout: os.Stdout, Stderr: os.Stderr, Now: time.Now}).Run(context.Background(), args)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return (&App{Stdout: os.Stdout, Stderr: os.Stderr, Now: time.Now}).Run(ctx, args)
 }
 
 // Run executa um subcomando.
@@ -191,25 +200,6 @@ var errNotImplemented = errors.New("não implementado")
 func (a *App) notImplemented(cmd, phase string) error {
 	fmt.Fprintf(a.Stdout, "ideias %s: não implementado (previsto para a fase %s)\n", cmd, phase)
 	return errNotImplemented
-}
-
-func (a *App) collect(_ context.Context, args []string) error {
-	fs, _ := a.newFlagSet("collect", "collect [--source hn|bsky|gh|all]")
-	source := fs.String("source", "all", "fonte a coletar: "+strings.Join(validSources, ", "))
-	if err := parse(fs, args); err != nil {
-		return err
-	}
-	if fs.NArg() > 0 {
-		return usagef("argumento inesperado: %q", fs.Arg(0))
-	}
-	ok := false
-	for _, s := range validSources {
-		ok = ok || s == *source
-	}
-	if !ok {
-		return usagef("--source %q inválida: use %s", *source, strings.Join(validSources, ", "))
-	}
-	return a.notImplemented("collect", "F1–F3")
 }
 
 func (a *App) report(_ context.Context, args []string) error {

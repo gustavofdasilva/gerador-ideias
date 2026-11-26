@@ -4,7 +4,7 @@ Coletor leve que roda no celular (Termux), lê conversas públicas do Hacker New
 
 O design completo fica em [docs/design.md](docs/design.md), e as fases de implementação em [docs/roadmap.md](docs/roadmap.md).
 
-> Estado atual: **F0 (esqueleto)**. `migrate` e `stats` funcionam; `collect`, `report`, `export` e `import` ainda respondem "não implementado".
+> Estado atual: **F1**. `migrate`, `stats` e `collect --source hn` funcionam. Bluesky e GitHub chegam na F2; `report`, `export` e `import` ainda respondem "não implementado".
 
 ## Compilar no PC
 
@@ -50,8 +50,15 @@ chmod 600 ~/.config/ideias/env
 
 ```sh
 bin/ideias migrate   # cria ou atualiza o banco (padrão ~/.local/share/ideias/ideias.db)
+bin/ideias collect   # coleta desde a última execução (o collect também aplica migrações pendentes)
 bin/ideias stats     # tamanho do banco, linhas por tabela, últimas coletas, tokens de IA
 bin/ideias help      # todos os comandos
 ```
 
 Todos os comandos aceitam `--db arquivo` para usar outro banco.
+
+## Como a coleta retoma
+
+Cada fonte tem um cursor: o fim da última janela coletada **sem erros**. A próxima coleta busca do cursor (menos `overlap_minutes`) até agora, por maior que seja o intervalo, então dias com o celular desligado são recuperados. Se alguma busca falhar, o cursor não avança e a janela inteira é repetida na próxima vez; os itens já gravados são ignorados pela chave `(source, external_id)`. Sem cursor, a coleta volta `initial_lookback_days` dias.
+
+Cada execução fica registrada na tabela `runs`, e a última de cada fonte aparece no `ideias stats`.

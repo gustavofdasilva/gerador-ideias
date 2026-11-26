@@ -51,7 +51,36 @@ infra = 10
 group_model = "a"
 score_model = "b"
 weekly_token_limit = 1000
+[collect]
+initial_lookback_days = 7
+overlap_minutes = 60
+[sources.hn]
+languages = ["EN"]
 `
+
+func TestPhrasesFor(t *testing.T) {
+	cfg, err := Parse(ideias.ExampleConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	en := cfg.PhrasesFor([]string{"en"})
+	if len(en) == 0 {
+		t.Fatal("sem frases em inglês")
+	}
+	seen := map[string]bool{}
+	for _, p := range en {
+		if seen[p] {
+			t.Errorf("frase repetida: %q", p)
+		}
+		seen[p] = true
+	}
+	if !seen["alternative to"] || seen["pagaria por"] {
+		t.Errorf("frases inesperadas: %v", en)
+	}
+	if got := cfg.PhrasesFor(cfg.Sources.HN.Languages); len(got) != len(en) {
+		t.Errorf("sources.hn.languages do exemplo deveria ser só en")
+	}
+}
 
 func TestParseNormalizesPhrases(t *testing.T) {
 	cfg, err := Parse([]byte(minimal))
@@ -87,6 +116,12 @@ func TestParseErrors(t *testing.T) {
 		{"limite de tokens zero", func(s string) string {
 			return strings.Replace(s, "weekly_token_limit = 1000", "weekly_token_limit = 0", 1)
 		}, "weekly_token_limit"},
+		{"hn com idioma desabilitado", func(s string) string {
+			return strings.Replace(s, `languages = ["EN"]`, `languages = ["pt"]`, 1)
+		}, `sources.hn.languages: idioma "pt" fora de languages`},
+		{"lookback zero", func(s string) string {
+			return strings.Replace(s, "initial_lookback_days = 7", "initial_lookback_days = 0", 1)
+		}, "initial_lookback_days"},
 		{"sem db_path", func(s string) string {
 			return strings.Replace(s, `db_path = "x.db"`, `db_path = ""`, 1)
 		}, "db_path vazio"},

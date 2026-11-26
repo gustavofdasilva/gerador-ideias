@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 
@@ -25,6 +26,8 @@ type Config struct {
 	Brands    Brands   `toml:"brands"`
 	Rubric    Rubric   `toml:"rubric"`
 	AI        AI       `toml:"ai"`
+	Collect   Collect  `toml:"collect"`
+	Sources   Sources  `toml:"sources"`
 
 	// Source é de onde a configuração veio: o caminho do arquivo ou "embutido".
 	Source string `toml:"-"`
@@ -66,6 +69,53 @@ type AI struct {
 	GroupModel       string `toml:"group_model"`
 	ScoreModel       string `toml:"score_model"`
 	WeeklyTokenLimit int64  `toml:"weekly_token_limit"`
+}
+
+// Collect controla a janela de coleta (design, 5.1 passo 1).
+type Collect struct {
+	// Sem cursor (primeira execução ou cursor apagado), busca os últimos N dias.
+	InitialLookbackDays int `toml:"initial_lookback_days"`
+	// Re-busca os últimos N minutos da janela anterior (atraso de indexação).
+	OverlapMinutes int `toml:"overlap_minutes"`
+}
+
+// InitialLookback devolve InitialLookbackDays como duração.
+func (c Collect) InitialLookback() time.Duration {
+	return time.Duration(c.InitialLookbackDays) * 24 * time.Hour
+}
+
+// Overlap devolve OverlapMinutes como duração.
+func (c Collect) Overlap() time.Duration {
+	return time.Duration(c.OverlapMinutes) * time.Minute
+}
+
+// Sources guarda opções por fonte.
+type Sources struct {
+	HN HNSource `toml:"hn"`
+}
+
+// HNSource configura o coletor do Hacker News.
+type HNSource struct {
+	// Idiomas cujas frases de dor são buscadas no HN (quase tudo lá é inglês).
+	Languages []string `toml:"languages"`
+}
+
+// PhrasesFor devolve as frases (sem repetição, em ordem estável) dos idiomas dados.
+func (c *Config) PhrasesFor(langs []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, lang := range langs {
+		byType := c.Pain.Phrases[lang]
+		for _, typ := range sortedKeys(byType) {
+			for _, p := range byType[typ] {
+				if !seen[p] {
+					seen[p] = true
+					out = append(out, p)
+				}
+			}
+		}
+	}
+	return out
 }
 
 // EmbeddedSource é o valor de Config.Source quando se usa o config.example.toml embutido.
@@ -140,6 +190,9 @@ func Parse(data []byte) (*Config, error) {
 func (c *Config) normalize() {
 	for i, l := range c.Languages {
 		c.Languages[i] = strings.ToLower(strings.TrimSpace(l))
+	}
+	for i, l := range c.Sources.HN.Languages {
+		c.Sources.HN.Languages[i] = strings.ToLower(strings.TrimSpace(l))
 	}
 	phrases := make(map[string]map[string][]string, len(c.Pain.Phrases))
 	for lang, byType := range c.Pain.Phrases {
@@ -226,6 +279,21 @@ func (c *Config) Validate() error {
 	}
 	if c.AI.WeeklyTokenLimit <= 0 {
 		add("ai.weekly_token_limit precisa ser maior que zero")
+	}
+
+	if c.Collect.InitialLookbackDays < 1 {
+		add("collect.initial_lookback_days precisa ser pelo menos 1")
+	}
+	if c.Collect.OverlapMinutes < 0 {
+		add("collect.overlap_minutes negativo")
+	}
+	if len(c.Sources.HN.Languages) == 0 {
+		add("sources.hn.languages vazio")
+	}
+	for _, l := range c.Sources.HN.Languages {
+		if !enabled[l] {
+			add("sources.hn.languages: idioma %q fora de languages", l)
+		}
 	}
 	return errors.Join(errs...)
 }
