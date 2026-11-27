@@ -249,6 +249,13 @@ item_chars = 500
 max_clusters = 150
 # Quantas dores são pontuadas por semana (as mais citadas na semana).
 score_top = 20
+# Dores por chamada de pontuação: cada uma gera uma resposta longa, e todas
+# juntas estouram o limite de saída de muitos modelos.
+score_batch_size = 5
+# Limite de tokens de saída por chamada. Modelos que "pensam" antes de
+# responder gastam parte disso no raciocínio: suba se aparecer
+# "resposta cortada pelo limite de tokens de saída".
+max_output_tokens = 8000
 # Ajustes da nota final (0 a 100): cada penalidade da rubrica tira
 # penalty_points; o bônus de concorrência soma bonus_points.
 penalty_points = 15

@@ -127,6 +127,10 @@ type AI struct {
 	MaxClusters int `toml:"max_clusters"`
 	// ScoreTop: quantas dores são pontuadas por semana (design: ~20).
 	ScoreTop int `toml:"score_top"`
+	// ScoreBatchSize: dores por chamada de pontuação (cada uma gera uma resposta longa).
+	ScoreBatchSize int `toml:"score_batch_size"`
+	// MaxOutputTokens: limite de tokens de saída de cada chamada.
+	MaxOutputTokens int `toml:"max_output_tokens"`
 	// PenaltyPoints e BonusPoints ajustam a nota final (0 a 100).
 	PenaltyPoints int `toml:"penalty_points"`
 	BonusPoints   int `toml:"bonus_points"`

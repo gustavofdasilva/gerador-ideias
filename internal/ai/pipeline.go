@@ -31,12 +31,6 @@ func ShortReason(err error) string {
 	}
 }
 
-// Limites de saída por chamada.
-const (
-	groupMaxTokens = 8000
-	scoreMaxTokens = 8000
-)
-
 // Runner executa o modo automático.
 type Runner struct {
 	DB     *sql.DB
@@ -124,7 +118,7 @@ func (r *Runner) groupBatch(ctx context.Context, items []Item, n, total int) err
 		vctx.Clusters[c.Ref] = true
 	}
 
-	resp, err := r.chatJSON(ctx, "group", r.Cfg.AI.GroupModel, GroupPrompt(), user.String(), groupMaxTokens,
+	resp, err := r.chatJSON(ctx, "group", r.Cfg.AI.GroupModel, GroupPrompt(), user.String(), r.Cfg.AI.MaxOutputTokens,
 		func(resp *Response) error { return ValidateGrouping(resp, vctx, true) })
 	if err != nil {
 		return fmt.Errorf("agrupamento (lote %d de %d): %w", n, total, err)
@@ -205,20 +199,29 @@ func (r *Runner) score(ctx context.Context, w *Week, targets []*clusterStats) ([
 	for _, c := range r.clusters {
 		byRef[c.Ref] = c
 	}
-	var user strings.Builder
-	fmt.Fprintf(&user, "Semana %s. Dores a pontuar (%d):\n\n", w.Week, len(targets))
-	valid := map[string]bool{}
-	for _, t := range targets {
-		valid[t.ref] = true
-		user.WriteString(ScoreBlock(byRef[t.ref], t.items, r.Cfg.AI.ItemChars))
+	// Em lotes: cada dor gera uma resposta longa (notas, canal, MVP, riscos)
+	// e 20 de uma vez estouram o limite de saída de muitos modelos.
+	size := r.Cfg.AI.ScoreBatchSize
+	total := (len(targets) + size - 1) / size
+	var scores []Score
+	for n := 0; n*size < len(targets); n++ {
+		batch := targets[n*size : min((n+1)*size, len(targets))]
+		var user strings.Builder
+		fmt.Fprintf(&user, "Semana %s. Dores a pontuar (%d):\n\n", w.Week, len(batch))
+		valid := map[string]bool{}
+		for _, t := range batch {
+			valid[t.ref] = true
+			user.WriteString(ScoreBlock(byRef[t.ref], t.items, r.Cfg.AI.ItemChars))
+		}
+		resp, err := r.chatJSON(ctx, "score", r.Cfg.AI.ScoreModel, ScorePrompt(r.Cfg), user.String(), r.Cfg.AI.MaxOutputTokens,
+			func(resp *Response) error { return ValidateScores(resp, valid) })
+		if err != nil {
+			return nil, fmt.Errorf("pontuação (lote %d de %d): %w", n+1, total, err)
+		}
+		r.logf("pontuação: lote %d de %d ok (%d dores)", n+1, total, len(resp.Pontuacoes))
+		scores = append(scores, resp.Pontuacoes...)
 	}
-	resp, err := r.chatJSON(ctx, "score", r.Cfg.AI.ScoreModel, ScorePrompt(r.Cfg), user.String(), scoreMaxTokens,
-		func(resp *Response) error { return ValidateScores(resp, valid) })
-	if err != nil {
-		return nil, fmt.Errorf("pontuação: %w", err)
-	}
-	r.logf("pontuação: %d dores ok", len(resp.Pontuacoes))
-	return resp.Pontuacoes, nil
+	return scores, nil
 }
 
 // ScoreBlock descreve uma dor para a pontuação: dados agregados da semana,

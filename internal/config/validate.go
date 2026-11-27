@@ -153,6 +153,10 @@ func (v *validator) ai() {
 	v.atLeastOne("ai.batch_size", a.BatchSize)
 	v.atLeastOne("ai.max_clusters", a.MaxClusters)
 	v.atLeastOne("ai.score_top", a.ScoreTop)
+	v.atLeastOne("ai.score_batch_size", a.ScoreBatchSize)
+	if a.MaxOutputTokens < 1000 {
+		v.add("ai.max_output_tokens precisa ser pelo menos 1000")
+	}
 	v.atLeastOne("ai.timeout_seconds", a.TimeoutSeconds)
 	if a.ItemChars < 100 {
 		v.add("ai.item_chars precisa ser pelo menos 100")

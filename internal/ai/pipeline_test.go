@@ -408,3 +408,24 @@ func TestManualRoundTrip(t *testing.T) {
 		t.Errorf("erros de validação: %v", err)
 	}
 }
+
+func TestScoringInBatches(t *testing.T) {
+	conn := openDB(t)
+	seedItems(t, conn, "2026-48", 12)
+	f := &fakeLLM{t: t, calls: map[string]int{}}
+	r := newRunner(t, conn, f)
+	r.Cfg.AI.ScoreBatchSize = 1 // 2 dores → 2 chamadas de pontuação
+	plan, err := runWeek(t, r, "2026-48")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.calls["score"] != 2 || len(plan.Scores) != 2 {
+		t.Errorf("chamadas de pontuação = %d, notas = %d", f.calls["score"], len(plan.Scores))
+	}
+	// Cada chamada só recebe a sua dor.
+	for _, p := range f.prompts {
+		if strings.Contains(p, "Dores a pontuar") && strings.Count(p, "\n### ") > 1 {
+			t.Errorf("lote com mais de uma dor:\n%s", p)
+		}
+	}
+}
