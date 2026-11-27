@@ -116,6 +116,9 @@ func Import(ctx context.Context, conn *sql.DB, cfg *config.Config, week string, 
 	mentioned := map[string]bool{}
 	for _, a := range resp.Atribuicoes {
 		mentioned[a.Item] = true
+		if id, ok := ids[a.Item]; ok && !containsID(res.Plan.Judged, id) {
+			res.Plan.Judged = append(res.Plan.Judged, id)
+		}
 		if a.Cluster == nil {
 			res.Discarded++
 			continue
@@ -164,4 +167,13 @@ func ManualHelp(files []string, week string) string {
 	fmt.Fprintf(&b, "No claude.ai: cole o conteúdo de prompt.md, anexe os candidatos (na ordem, se houver partes),\n"+
 		"salve a resposta num arquivo e rode: ideias import --week %s resposta.json\n", week)
 	return b.String()
+}
+
+func containsID(list []int64, id int64) bool {
+	for _, v := range list {
+		if v == id {
+			return true
+		}
+	}
+	return false
 }

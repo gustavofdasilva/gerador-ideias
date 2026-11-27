@@ -22,6 +22,9 @@ type Plan struct {
 	// Assign: candidato (id) -> ref do cluster ("c12", "n1"...). Candidatos
 	// sem entrada foram descartados pela IA (não são dor).
 	Assign map[int64]string
+	// Judged: candidatos que a IA julgou (os ligados a uma dor e os
+	// descartados com null). Vira items.ai_verdict, base do "calibrate".
+	Judged []int64
 	Scores []Score
 }
 
@@ -69,7 +72,7 @@ func Apply(ctx context.Context, conn *sql.DB, cfg *config.Config, p *Plan, now t
 		q    string
 		args []any
 	}{
-		{`UPDATE items SET cluster_id = NULL WHERE week = ?`, []any{p.Week}},
+		{`UPDATE items SET cluster_id = NULL, ai_verdict = NULL WHERE week = ?`, []any{p.Week}},
 		{`DELETE FROM cluster_weeks WHERE week = ?`, []any{p.Week}},
 		{`DELETE FROM clusters WHERE first_seen_week = ? AND id NOT IN (SELECT cluster_id FROM cluster_weeks)`, []any{p.Week}},
 	}
@@ -116,6 +119,17 @@ func Apply(ctx context.Context, conn *sql.DB, cfg *config.Config, p *Plan, now t
 		}
 		if n, _ := res.RowsAffected(); n != 1 {
 			return fmt.Errorf("item %d não é da semana %s", item, p.Week)
+		}
+	}
+
+	// Veredito de cada candidato julgado: 1 = virou dor, 0 = ruído.
+	for _, item := range p.Judged {
+		verdict := 0
+		if _, ok := p.Assign[item]; ok {
+			verdict = 1
+		}
+		if err := exec(`UPDATE items SET ai_verdict = ? WHERE id = ? AND week = ?`, verdict, item, p.Week); err != nil {
+			return err
 		}
 	}
 

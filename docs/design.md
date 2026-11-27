@@ -83,6 +83,7 @@ ideias stats                                # saúde: tamanho do banco, última 
 ideias migrate                              # aplica migrações do banco
 ideias check                                # alertas pelo Telegram: fonte falhando 2 dias seguidos, nenhuma coleta há 48 h
 ideias backup                               # backup comprimido do banco (também roda sozinho depois de cada relatório)
+ideias calibrate [--week AAAA-WW] [--weeks N]  # aproveitamento por fonte, frase e pain_score, segundo o veredito da IA
 ```
 
 No Termux, o cron chama os comandos por `scripts/run.sh`, que segura o wake lock durante a execução e grava um log rotacionado.
@@ -237,4 +238,5 @@ Dias sem coleta, erros por fonte, tamanho do banco
 | 2026-11-26 | Novo critério "Distribuição automática" (15%) e penalidade para venda com prospecção manual; pesos de frequência, B2B e vendabilidade caem para 10% | O dono não quer caçar leads manualmente; quer divulgar por SEO ou conteúdo automatizado |
 | 2026-11-26 | OmniRoute é infraestrutura externa já existente (sempre ativo no Termux); o projeto só consome a API | Já usado em outros projetos do dono |
 | 2026-11-26 | Candidatos com texto limitados a 100 por fonte e dia, texto em ~1.200 caracteres sem blocos de código, termos e marcas diários retidos por 8 semanas, `min_count` 3 | A 1ª semana real no celular deu 22,8 MiB (≈ 1 GiB/ano): 11 mil candidatos guardados, dos quais a IA usa só 400 |
+| 2026-11-27 | `items.ai_verdict` (a IA aproveitou ou descartou o candidato) e subcomando `calibrate` | A 1ª semana teve 84% de ruído; calibrar frases e limiares com os vereditos da IA, não com palpite (base da F7) |
 | 2026-11-26 | Novos subcomandos `check` (alertas, pelo cron a cada 6 h e depois de cada coleta) e `backup` (em Go, sem depender do binário sqlite3) | Um coletor parado não consegue alertar sobre a própria parada; o backup precisa rodar igual no PC e no celular |

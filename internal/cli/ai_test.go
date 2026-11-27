@@ -19,7 +19,7 @@ import (
 
 var reRefs = regexp.MustCompile(`(?m)^### (i\d+) · `)
 
-// fakeOmniRoute: põe todo candidato num cluster só e dá notas fixas.
+// fakeOmniRoute: põe cada candidato num cluster só e dá notas fixas.
 func fakeOmniRoute(t *testing.T, down *bool) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if *down {
@@ -176,6 +176,19 @@ func TestReportFallbackAndManualImport(t *testing.T) {
 	s := string(md)
 	if !strings.Contains(s, "IA: Claude web (manual)\n") || !strings.Contains(s, "— 93/100 (nova)") {
 		t.Errorf("relatório do import:\n%s", s)
+	}
+
+	// O veredito do import alimenta o calibrate.
+	outBuf := app.Stdout.(interface {
+		String() string
+		Reset()
+	})
+	outBuf.Reset()
+	if code := app.Run(ctx, []string{"calibrate", "--db", dbPath}); code != exitOK {
+		t.Fatal("calibrate falhou")
+	}
+	if !strings.Contains(outBuf.String(), "1 candidatos julgados pela IA · 1 viraram dor") {
+		t.Errorf("calibrate:\n%s", outBuf.String())
 	}
 
 	// Resposta com erro: mensagem clara, nada aplicado.

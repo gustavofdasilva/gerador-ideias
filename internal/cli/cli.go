@@ -44,6 +44,7 @@ Comandos:
   migrate                                 aplica as migrações do banco
   check   [--no-telegram]                 alertas: fonte falhando dias seguidos, coleta parada
   backup                                  backup comprimido do banco (roda sozinho após o relatório)
+  calibrate [--week AAAA-WW] [--weeks N] aproveitamento por fonte e frase, segundo a IA
 
 Opções de todos os comandos:
   --config arquivo   config.toml a usar (padrão: ./config.toml ou ~/.config/ideias/config.toml)
@@ -99,6 +100,8 @@ func (a *App) Run(ctx context.Context, args []string) int {
 		run = a.check
 	case "backup":
 		run = a.backup
+	case "calibrate":
+		run = a.calibrate
 	case "help", "-h", "--help":
 		fmt.Fprint(a.Stdout, usage)
 		return exitOK

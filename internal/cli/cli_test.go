@@ -65,7 +65,7 @@ func TestMigrateThenStats(t *testing.T) {
 		t.Fatalf("stats: code=%d stderr=%q", code, errOut)
 	}
 	for _, want := range []string{
-		"Config:  embutido", "Esquema: versão 5", "items", "daily_terms", "ai_usage",
+		"Config:  embutido", "Esquema: versão 6", "items", "daily_terms", "ai_usage",
 		"nenhuma coleta registrada", "IA no mês: 0 tokens (limite semanal: 500.000)",
 		"GITHUB_TOKEN        ok", "BSKY_HANDLE         não definido",
 	} {

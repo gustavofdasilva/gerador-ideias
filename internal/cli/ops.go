@@ -6,9 +6,11 @@ import (
 	"os"
 	"time"
 
+	"gerador-ideias/internal/calibrate"
 	"gerador-ideias/internal/db"
 	"gerador-ideias/internal/fmtx"
 	"gerador-ideias/internal/health"
+	"gerador-ideias/internal/process"
 	"gerador-ideias/internal/secrets"
 )
 
@@ -106,4 +108,39 @@ func fileSize(path string) (int64, error) {
 		return 0, err
 	}
 	return st.Size(), nil
+}
+
+// calibrate mostra o aproveitamento do filtro local segundo o veredito da IA.
+func (a *App) calibrate(ctx context.Context, args []string) error {
+	fs, c := a.newFlagSet("calibrate", "calibrate [--week AAAA-WW] [--weeks N]")
+	weekFlag := fs.String("week", "", "última semana do período (padrão: a semana corrente)")
+	weeks := fs.Int("weeks", 1, "quantas semanas, terminando em --week")
+	phrases := fs.Int("phrases", 30, "quantas frases listar")
+	if err := parse(fs, args); err != nil {
+		return err
+	}
+	if fs.NArg() > 0 {
+		return usagef("argumento inesperado: %q", fs.Arg(0))
+	}
+	if err := validWeek(*weekFlag); err != nil {
+		return err
+	}
+	if *weeks < 1 || *weeks > 52 {
+		return usagef("--weeks precisa ir de 1 a 52")
+	}
+	s, err := a.open(ctx, c, *weekFlag)
+	if err != nil {
+		return err
+	}
+	defer s.conn.Close()
+	list, err := calibrate.Weeks(s.week, *weeks)
+	if err != nil {
+		return err
+	}
+	res, err := calibrate.Build(ctx, s.conn, process.New(s.e.cfg), list)
+	if err != nil {
+		return err
+	}
+	fmt.Fprint(a.Stdout, res.Text(*phrases))
+	return nil
 }

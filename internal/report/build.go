@@ -342,20 +342,23 @@ func health(ctx context.Context, conn *sql.DB, r *Report, o Options) error {
 
 	today := week.Day(o.Now)
 	for _, src := range Sources {
-		var ever int
-		if err := conn.QueryRowContext(ctx, `SELECT count(*) FROM runs WHERE command = 'collect' AND source = ?`, src).Scan(&ever); err != nil {
+		var first sql.NullInt64
+		if err := conn.QueryRowContext(ctx, `SELECT min(started_at) FROM runs WHERE command = 'collect' AND source = ?`, src).Scan(&first); err != nil {
 			return err
 		}
-		if ever == 0 {
+		if !first.Valid {
 			h.NeverCollected[src] = true
 			continue
 		}
+		// Dias antes da 1ª coleta da fonte não contam: o sistema ainda não
+		// existia, e a 1ª coleta já busca os dias anteriores (initial_lookback_days).
+		firstDay := week.Day(time.Unix(first.Int64, 0))
 		for d := start; d.Before(end); d = d.AddDate(0, 0, 1) {
 			day := week.Day(d)
 			if day > today {
 				break
 			}
-			if !okDays[src][day] {
+			if day >= firstDay && !okDays[src][day] {
 				h.MissingDays[src] = append(h.MissingDays[src], day)
 			}
 		}

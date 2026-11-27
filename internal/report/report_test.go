@@ -261,3 +261,26 @@ func TestExcerpt(t *testing.T) {
 		t.Errorf("corte: %q", got)
 	}
 }
+
+// A 1ª coleta busca os dias anteriores: dias antes dela não são "sem coleta".
+func TestMissingDaysStartAtFirstCollect(t *testing.T) {
+	f := newFixture(t)
+	wed := time.Date(2026, 11, 25, 6, 0, 0, 0, time.UTC)
+	f.run("hn", wed, "ok", "")
+	f.run("hn", wed.AddDate(0, 0, 1), "ok", "")
+	r := build(t, f) // "agora" é quinta, 26/11
+	if got := r.Health.MissingDays["hn"]; len(got) != 0 {
+		t.Errorf("dias antes da 1ª coleta contados como falta: %v", got)
+	}
+	if !strings.Contains(r.Markdown(), "- Dias sem coleta: HN: nenhum") {
+		t.Error("relatório deveria dizer que o HN não perdeu nenhum dia")
+	}
+
+	// Um buraco depois da 1ª coleta continua aparecendo.
+	f2 := newFixture(t)
+	f2.run("hn", wed.AddDate(0, 0, -2), "ok", "") // segunda
+	f2.run("hn", wed.AddDate(0, 0, 1), "ok", "")  // quinta
+	if got := build(t, f2).Health.MissingDays["hn"]; strings.Join(got, ",") != "2026-11-24,2026-11-25" {
+		t.Errorf("buraco depois da 1ª coleta: %v", got)
+	}
+}

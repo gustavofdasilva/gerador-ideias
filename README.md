@@ -174,6 +174,21 @@ O `import` aceita a resposta colada do jeito que vier, com cerca ```json e texto
 
 Regerar uma semana (`report` ou `import` de novo) refaz o agrupamento daquela semana, sem duplicar clusters.
 
+## Calibrar o filtro
+
+Cada `report` com IA e cada `import` gravam o veredito da IA sobre os candidatos que ela julgou: virou dor ou é ruído. O `calibrate` usa esses vereditos para medir o filtro local:
+
+```sh
+bin/ideias calibrate --week 2026-48            # uma semana
+bin/ideias calibrate --week 2026-51 --weeks 4  # as 4 semanas até 2026-51
+```
+
+Ele mostra o aproveitamento por fonte, por faixa de `pain_score` e por frase de dor dentro de cada fonte, e destaca:
+- as frases com volume que são quase só ruído (menos de 10% aproveitadas). Dá para tirá-las de `pain.phrases`, exigir marca em `pain.brand_required` ou acrescentar exclusões em `pain.exclude`;
+- as frases que funcionam bem.
+
+As frases são recalculadas sobre o texto guardado com o config atual. Então dá para editar o `config.toml` e rodar o `calibrate` de novo para ver o efeito, sem esperar outra coleta.
+
 ## Credenciais das fontes
 
 - **Hacker News:** nenhuma.

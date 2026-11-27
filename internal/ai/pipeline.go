@@ -96,7 +96,11 @@ func (r *Runner) Run(ctx context.Context, w *Week) (*Plan, error) {
 			return nil, err
 		}
 	}
-	return &Plan{Week: w.Week, New: r.created, Assign: r.assign, Scores: scores}, nil
+	judged := make([]int64, len(w.Items))
+	for i, it := range w.Items {
+		judged[i] = it.ID // cada candidato enviado foi julgado: a validação exige que a IA responda sobre todos
+	}
+	return &Plan{Week: w.Week, New: r.created, Assign: r.assign, Judged: judged, Scores: scores}, nil
 }
 
 // groupSplit agrupa um lote; se a resposta vier cortada pelo limite de
