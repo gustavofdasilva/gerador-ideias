@@ -82,7 +82,8 @@ func (r *Runner) Run(ctx context.Context, w *Week) (*Plan, error) {
 	batch := r.Cfg.AI.BatchSize
 	for start := 0; start < len(w.Items); start += batch {
 		items := w.Items[start:min(start+batch, len(w.Items))]
-		if err := r.groupBatch(ctx, items, start/batch+1, (len(w.Items)+batch-1)/batch); err != nil {
+		label := fmt.Sprintf("%d de %d", start/batch+1, (len(w.Items)+batch-1)/batch)
+		if err := r.groupSplit(ctx, items, label); err != nil {
 			return nil, err
 		}
 	}
@@ -98,9 +99,24 @@ func (r *Runner) Run(ctx context.Context, w *Week) (*Plan, error) {
 	return &Plan{Week: w.Week, New: r.created, Assign: r.assign, Scores: scores}, nil
 }
 
-func (r *Runner) groupBatch(ctx context.Context, items []Item, n, total int) error {
+// groupSplit agrupa um lote; se a resposta vier cortada pelo limite de
+// saída, divide o lote ao meio e tenta cada metade (até 1 item).
+func (r *Runner) groupSplit(ctx context.Context, items []Item, label string) error {
+	err := r.groupBatch(ctx, items, label)
+	if !errors.Is(err, ErrTruncated) || len(items) < 2 {
+		return err
+	}
+	half := len(items) / 2
+	r.logf("agrupamento: lote %s cortado pelo limite de saída; dividindo (%d + %d)", label, half, len(items)-half)
+	if err := r.groupSplit(ctx, items[:half], label+"a"); err != nil {
+		return err
+	}
+	return r.groupSplit(ctx, items[half:], label+"b")
+}
+
+func (r *Runner) groupBatch(ctx context.Context, items []Item, label string) error {
 	var user strings.Builder
-	fmt.Fprintf(&user, "Semana %s · lote %d de %d.\n\n", r.week, n, total)
+	fmt.Fprintf(&user, "Semana %s · lote %s.\n\n", r.week, label)
 	shown := r.clusters
 	if limit := r.Cfg.AI.MaxClusters; len(shown) > limit {
 		// Os criados nesta execução ficam no fim da lista: mostra sempre os
@@ -121,7 +137,7 @@ func (r *Runner) groupBatch(ctx context.Context, items []Item, n, total int) err
 	resp, err := r.chatJSON(ctx, "group", r.Cfg.AI.GroupModel, GroupPrompt(), user.String(), r.Cfg.AI.MaxOutputTokens,
 		func(resp *Response) error { return ValidateGrouping(resp, vctx, true) })
 	if err != nil {
-		return fmt.Errorf("agrupamento (lote %d de %d): %w", n, total, err)
+		return fmt.Errorf("agrupamento (lote %s): %w", label, err)
 	}
 
 	// "novoN" desta resposta vira "nK", único na execução, e passa a ser um
@@ -148,7 +164,7 @@ func (r *Runner) groupBatch(ctx context.Context, items []Item, n, total int) err
 		}
 		r.assign[ids[a.Item]] = ref
 	}
-	r.logf("agrupamento: lote %d de %d ok (%d novos clusters)", n, total, len(resp.NovosClusters))
+	r.logf("agrupamento: lote %s ok (%d novos clusters)", label, len(resp.NovosClusters))
 	return nil
 }
 
@@ -206,22 +222,42 @@ func (r *Runner) score(ctx context.Context, w *Week, targets []*clusterStats) ([
 	var scores []Score
 	for n := 0; n*size < len(targets); n++ {
 		batch := targets[n*size : min((n+1)*size, len(targets))]
-		var user strings.Builder
-		fmt.Fprintf(&user, "Semana %s. Dores a pontuar (%d):\n\n", w.Week, len(batch))
-		valid := map[string]bool{}
-		for _, t := range batch {
-			valid[t.ref] = true
-			user.WriteString(ScoreBlock(byRef[t.ref], t.items, r.Cfg.AI.ItemChars))
-		}
-		resp, err := r.chatJSON(ctx, "score", r.Cfg.AI.ScoreModel, ScorePrompt(r.Cfg), user.String(), r.Cfg.AI.MaxOutputTokens,
-			func(resp *Response) error { return ValidateScores(resp, valid) })
+		got, err := r.scoreSplit(ctx, w.Week, batch, byRef, fmt.Sprintf("%d de %d", n+1, total))
 		if err != nil {
-			return nil, fmt.Errorf("pontuação (lote %d de %d): %w", n+1, total, err)
+			return nil, err
 		}
-		r.logf("pontuação: lote %d de %d ok (%d dores)", n+1, total, len(resp.Pontuacoes))
-		scores = append(scores, resp.Pontuacoes...)
+		scores = append(scores, got...)
 	}
 	return scores, nil
+}
+
+// scoreSplit pontua um lote; se a resposta vier cortada pelo limite de
+// saída, divide o lote ao meio e tenta cada metade (até 1 dor).
+func (r *Runner) scoreSplit(ctx context.Context, wk string, batch []*clusterStats, byRef map[string]Cluster, label string) ([]Score, error) {
+	var user strings.Builder
+	fmt.Fprintf(&user, "Semana %s. Dores a pontuar (%d):\n\n", wk, len(batch))
+	valid := map[string]bool{}
+	for _, t := range batch {
+		valid[t.ref] = true
+		user.WriteString(ScoreBlock(byRef[t.ref], t.items, r.Cfg.AI.ItemChars))
+	}
+	resp, err := r.chatJSON(ctx, "score", r.Cfg.AI.ScoreModel, ScorePrompt(r.Cfg), user.String(), r.Cfg.AI.MaxOutputTokens,
+		func(resp *Response) error { return ValidateScores(resp, valid) })
+	if errors.Is(err, ErrTruncated) && len(batch) > 1 {
+		half := len(batch) / 2
+		r.logf("pontuação: lote %s cortado pelo limite de saída; dividindo (%d + %d)", label, half, len(batch)-half)
+		first, err := r.scoreSplit(ctx, wk, batch[:half], byRef, label+"a")
+		if err != nil {
+			return nil, err
+		}
+		second, err := r.scoreSplit(ctx, wk, batch[half:], byRef, label+"b")
+		return append(first, second...), err
+	}
+	if err != nil {
+		return nil, fmt.Errorf("pontuação (lote %s): %w", label, err)
+	}
+	r.logf("pontuação: lote %s ok (%d dores)", label, len(resp.Pontuacoes))
+	return resp.Pontuacoes, nil
 }
 
 // ScoreBlock descreve uma dor para a pontuação: dados agregados da semana,

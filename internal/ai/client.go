@@ -11,6 +11,10 @@ import (
 	"gerador-ideias/internal/httpx"
 )
 
+// ErrTruncated: a resposta foi cortada pelo limite de tokens de saída
+// (comum em modelos que "pensam" antes de responder).
+var ErrTruncated = errors.New("resposta cortada pelo limite de tokens de saída")
+
 // Client fala com qualquer API compatível com OpenAI (o OmniRoute, no caso).
 // Não usa SDK de provedor nenhum: só /models e /chat/completions.
 type Client struct {
@@ -113,7 +117,7 @@ func (c *Client) Chat(ctx context.Context, model string, messages []Message, max
 		r.Model = model
 	}
 	if out.Choices[0].FinishReason == "length" {
-		return r, fmt.Errorf("resposta cortada pelo limite de tokens de saída (%d)", maxTokens)
+		return r, fmt.Errorf("%w (%d)", ErrTruncated, maxTokens)
 	}
 	return r, nil
 }

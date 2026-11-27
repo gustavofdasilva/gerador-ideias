@@ -70,6 +70,9 @@ type fakeLLM struct {
 	down        bool
 	failChat    bool
 	prompts     []string
+	// cutAbove > 0: respostas para mais itens (ou dores) que isso vêm
+	// cortadas pelo limite de saída, como um modelo que "pensa" demais.
+	cutAbove int
 }
 
 var (
@@ -132,9 +135,13 @@ func (f *fakeLLM) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	default:
 		f.t.Fatalf("prompt desconhecido: %.80s", system)
 	}
+	finish := "stop"
+	if n := len(reItemRef.FindAllString(user, -1)) + len(reScoreRef.FindAllString(user, -1)); f.cutAbove > 0 && n > f.cutAbove {
+		finish, content = "length", content[:len(content)/2]
+	}
 	json.NewEncoder(w).Encode(map[string]any{
 		"model":   req.Model + "-real",
-		"choices": []map[string]any{{"message": map[string]string{"role": "assistant", "content": content}, "finish_reason": "stop"}},
+		"choices": []map[string]any{{"message": map[string]string{"role": "assistant", "content": content}, "finish_reason": finish}},
 		"usage":   map[string]int{"prompt_tokens": 1000, "completion_tokens": 200, "total_tokens": 1200},
 	})
 }
@@ -427,5 +434,44 @@ func TestScoringInBatches(t *testing.T) {
 		if strings.Contains(p, "Dores a pontuar") && strings.Count(p, "\n### ") > 1 {
 			t.Errorf("lote com mais de uma dor:\n%s", p)
 		}
+	}
+}
+
+func TestTruncatedBatchesAreSplit(t *testing.T) {
+	conn := openDB(t)
+	seedItems(t, conn, "2026-48", 12)
+	f := &fakeLLM{t: t, calls: map[string]int{}, cutAbove: 1}
+	r := newRunner(t, conn, f)
+	r.Cfg.AI.ScoreBatchSize = 5
+	var logs []string
+	r.Log = func(format string, args ...any) { logs = append(logs, fmt.Sprintf(format, args...)) }
+	plan, err := runWeek(t, r, "2026-48")
+	if err != nil {
+		t.Fatalf("deveria dividir os lotes cortados até caber: %v", err)
+	}
+	// Lotes de 4 candidatos viram 2+2 e depois 1+1; as 2 dores, 1+1.
+	if len(plan.Assign) != 8 || len(plan.Scores) != 2 {
+		t.Errorf("atribuídos=%d notas=%d", len(plan.Assign), len(plan.Scores))
+	}
+	all := strings.Join(logs, "\n")
+	for _, want := range []string{"agrupamento: lote 1 de 3 cortado", "lote 1 de 3aa ok", "pontuação: lote 1 de 1 cortado", "lote 1 de 1b ok"} {
+		if !strings.Contains(all, want) {
+			t.Errorf("log sem %q:\n%s", want, all)
+		}
+	}
+
+	// Um item sozinho ainda cortado: não há mais o que dividir, vira erro.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if strings.HasSuffix(req.URL.Path, "/models") {
+			w.Write([]byte(`{"data":[]}`))
+			return
+		}
+		w.Write([]byte(`{"choices":[{"message":{"content":"{"},"finish_reason":"length"}],"usage":{"total_tokens":10}}`))
+	}))
+	defer srv.Close()
+	r2 := newRunner(t, conn, &fakeLLM{t: t, calls: map[string]int{}})
+	r2.Client.BaseURL = srv.URL
+	if _, err := runWeek(t, r2, "2026-48"); !errors.Is(err, ErrTruncated) {
+		t.Errorf("esperava ErrTruncated, veio %v", err)
 	}
 }
