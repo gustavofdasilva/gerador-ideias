@@ -31,6 +31,7 @@ type Config struct {
 	Keywords  Keywords `toml:"keywords"`
 	Report    Report   `toml:"report"`
 	Alerts    Alerts   `toml:"alerts"`
+	Storage   Storage  `toml:"storage"`
 	Backup    Backup   `toml:"backup"`
 
 	// Source é de onde a configuração veio: o caminho do arquivo ou "embutido".
@@ -158,6 +159,17 @@ type Alerts struct {
 	RepeatHours int `toml:"repeat_hours"`
 }
 
+// Storage controla quanto o banco guarda (meta: < 200 MB/ano, design 5.6).
+type Storage struct {
+	// MaxCandidatesPerDay: candidatos com texto guardado por fonte e por dia
+	// (os de maior pain_score). Os demais só contam nas agregações.
+	MaxCandidatesPerDay int `toml:"max_candidates_per_day"`
+	// MaxTextChars: caracteres de texto guardados por candidato.
+	MaxTextChars int `toml:"max_text_chars"`
+	// KeepTermWeeks: semanas de daily_terms e daily_brands mantidas.
+	KeepTermWeeks int `toml:"keep_term_weeks"`
+}
+
 // Backup controla o backup feito depois de cada relatório.
 type Backup struct {
 	Dir  string `toml:"dir"`  // vazio desliga o backup automático
@@ -255,7 +267,7 @@ func LoadFile(path string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
-	cfg, err := Parse(data)
+	cfg, err := ParseOverDefaults(data)
 	if err != nil {
 		return nil, fmt.Errorf("config %s: %w", path, err)
 	}
@@ -263,10 +275,43 @@ func LoadFile(path string) (*Config, error) {
 	return cfg, nil
 }
 
-// Parse decodifica, normaliza e valida o TOML.
+// Parse decodifica, normaliza e valida o TOML sozinho (sem padrões).
 func Parse(data []byte) (*Config, error) {
-	var cfg Config
-	md, err := toml.Decode(string(data), &cfg)
+	return parse(data, &Config{})
+}
+
+// ParseOverDefaults lê o TOML por cima do config.example.toml embutido:
+// chaves ausentes ficam com o padrão. Assim, um config.toml antigo continua
+// valendo quando uma versão nova acrescenta opções. Tabelas por idioma ou por
+// tipo (frases, pesos, exclusões, padrões de marca) que o arquivo define
+// substituem as do padrão por inteiro, em vez de somar.
+func ParseOverDefaults(data []byte) (*Config, error) {
+	base, err := Parse(ideias.ExampleConfig)
+	if err != nil {
+		return nil, fmt.Errorf("config embutido: %w", err)
+	}
+	var probe map[string]any
+	md, err := toml.Decode(string(data), &probe)
+	if err != nil {
+		return nil, err
+	}
+	if md.IsDefined("pain", "phrases") {
+		base.Pain.Phrases = nil
+	}
+	if md.IsDefined("pain", "weights") {
+		base.Pain.Weights = nil
+	}
+	if md.IsDefined("pain", "exclude") {
+		base.Pain.Exclude = nil
+	}
+	if md.IsDefined("brands", "patterns") {
+		base.Brands.Patterns = nil
+	}
+	return parse(data, base)
+}
+
+func parse(data []byte, cfg *Config) (*Config, error) {
+	md, err := toml.Decode(string(data), cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -281,18 +326,31 @@ func Parse(data []byte) (*Config, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
-	return &cfg, nil
+	return cfg, nil
 }
 
 func (c *Config) normalize() {
 	for i, l := range c.Languages {
 		c.Languages[i] = strings.ToLower(strings.TrimSpace(l))
 	}
-	for _, list := range [][]string{c.Sources.HN.Languages, c.Sources.Bsky.Languages, c.Sources.GH.Languages} {
-		for i, l := range list {
-			list[i] = strings.ToLower(strings.TrimSpace(l))
-		}
+	// Idiomas das fontes que não estão em languages são ignorados (eles vêm
+	// dos padrões quando o config desliga um idioma).
+	enabled := map[string]bool{}
+	for _, l := range c.Languages {
+		enabled[l] = true
 	}
+	onlyEnabled := func(list []string) []string {
+		var out []string
+		for _, l := range list {
+			if l = strings.ToLower(strings.TrimSpace(l)); enabled[l] {
+				out = append(out, l)
+			}
+		}
+		return out
+	}
+	c.Sources.HN.Languages = onlyEnabled(c.Sources.HN.Languages)
+	c.Sources.Bsky.Languages = onlyEnabled(c.Sources.Bsky.Languages)
+	c.Sources.GH.Languages = onlyEnabled(c.Sources.GH.Languages)
 	phrases := make(map[string]map[string][]string, len(c.Pain.Phrases))
 	for lang, byType := range c.Pain.Phrases {
 		norm := make(map[string][]string, len(byType))

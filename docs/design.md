@@ -95,8 +95,9 @@ No Termux, o cron chama os comandos por `scripts/run.sh`, que segura o wake lock
 5. **Filtro de candidatos (sem IA):** busca frases de dor e de pedido por idioma, definidas num arquivo de configuração editável. Exemplos: "is there an app", "alternative to", "I'd pay for", "I wish there was", "why doesn't X", "cancelled my subscription", "tem algum app que", "alguém conhece uma alternativa", "pagaria por". Cada candidato ganha um `pain_score` simples (quantas frases casaram, peso por tipo, engajamento).
 6. Extrai **marcas** (lista-semente editável, padrões como "alternative to X" e "X sucks", nome do repositório no GitHub) e **palavras-chave** (1–3-gramas sem stopwords).
 7. **Armazenamento econômico:**
-   - Candidatos: guarda o texto (truncado em ~2.000 caracteres) e os metadados.
+   - Candidatos: guarda o texto (sem blocos de código, truncado em ~1.200 caracteres) e os metadados, até um limite por fonte e por dia (os de maior `pain_score`; padrão 100). Os demais continuam contados como candidatos nas agregações.
    - Não-candidatos: o texto é descartado. Só alimentam contagens agregadas por dia, fonte e idioma (termos e marcas).
+   - Contagens de termos e marcas por dia ficam só pelas últimas ~8 semanas (a tendência usa 5); o histórico longo das dores está nos clusters.
 8. Atualiza o cursor e registra a execução (`runs`: início, fim, itens, erros).
 
 ### 5.2 Fluxo semanal (`report`, domingo)
@@ -145,7 +146,7 @@ A v2 pode consultar o campo `location` do perfil do GitHub, mas apenas dos autor
 - `clusters`: dor, nicho, primeira e última vez vista, histórico de menções por semana e última nota.
 - `cursors`, `runs` e `ai_usage`.
 
-Meta de tamanho: abaixo de 200 MB por ano. O `ideias stats` mostra o tamanho atual.
+Meta de tamanho: abaixo de 200 MB por ano. O `ideias stats` mostra o tamanho atual, o tamanho de cada tabela e o crescimento estimado (separando as tabelas que crescem sempre das que têm teto).
 
 **Backup:** depois de cada relatório, `VACUUM INTO` gera uma cópia comprimida em `~/storage/shared/ideias-backup/`, mantendo as 4 últimas. Assim o histórico sobrevive a uma reinstalação do Termux.
 
@@ -235,4 +236,5 @@ Dias sem coleta, erros por fonte, tamanho do banco
 | 2026-11-26 | IA via OmniRoute; Anthropic só pelo Claude web (export/import manual) | Custo zero; nenhuma chave de API paga |
 | 2026-11-26 | Novo critério "Distribuição automática" (15%) e penalidade para venda com prospecção manual; pesos de frequência, B2B e vendabilidade caem para 10% | O dono não quer caçar leads manualmente; quer divulgar por SEO ou conteúdo automatizado |
 | 2026-11-26 | OmniRoute é infraestrutura externa já existente (sempre ativo no Termux); o projeto só consome a API | Já usado em outros projetos do dono |
+| 2026-11-26 | Candidatos com texto limitados a 100 por fonte e dia, texto em ~1.200 caracteres sem blocos de código, termos e marcas diários retidos por 8 semanas, `min_count` 3 | A 1ª semana real no celular deu 22,8 MiB (≈ 1 GiB/ano): 11 mil candidatos guardados, dos quais a IA usa só 400 |
 | 2026-11-26 | Novos subcomandos `check` (alertas, pelo cron a cada 6 h e depois de cada coleta) e `backup` (em Go, sem depender do binário sqlite3) | Um coletor parado não consegue alertar sobre a própria parada; o backup precisa rodar igual no PC e no celular |

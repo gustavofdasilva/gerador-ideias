@@ -95,7 +95,7 @@ cp env.example ~/.config/ideias/env                   # tokens e senhas
 chmod 600 ~/.config/ideias/env
 ```
 
-- O `config.toml` é procurado primeiro na pasta atual (`./config.toml`) e depois em `~/.config/ideias/config.toml`. Se nenhum existir, valem os padrões do `config.example.toml`, que vem embutido no binário. Para usar outro arquivo, passe `--config arquivo`.
+- O `config.toml` é procurado primeiro na pasta atual (`./config.toml`) e depois em `~/.config/ideias/config.toml`. Se nenhum existir, valem os padrões do `config.example.toml`, que vem embutido no binário. Para usar outro arquivo, passe `--config arquivo`. Chaves que faltam no seu `config.toml` também usam esses padrões, então um config antigo continua funcionando quando uma versão nova traz opções novas. Uma tabela de frases, pesos, exclusões ou padrões de marca que você definir substitui a do padrão por inteiro.
 - Os segredos vêm de variáveis de ambiente ou de `~/.config/ideias/env`. Se a mesma variável estiver nos dois lugares, vale a do ambiente. Nunca coloque segredos no `config.toml`.
 
 ## Usar

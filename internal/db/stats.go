@@ -14,6 +14,7 @@ import (
 type TableCount struct {
 	Table string
 	Rows  int64
+	Bytes int64 // espaço ocupado, com os índices (dbstat)
 }
 
 // LastRun resume a execução mais recente de uma fonte.
@@ -42,10 +43,17 @@ type Stats struct {
 	BySource []SourceCount
 	Rates    []SourceCount
 	// Dias de posts cobertos pelo banco (de daily_items) e o crescimento
-	// estimado em bytes por mês (PageBytes ÷ dias × 30).
+	// estimado em bytes por mês: só das tabelas que crescem sempre
+	// (bytes ÷ dias × 30). As tabelas com teto (BoundedTables) ficam à parte.
 	DataDays      int
 	MonthlyGrowth int64
+	BoundedBytes  int64 // seen + daily_terms + daily_brands, hoje
+	TermBytes     int64 // daily_terms + daily_brands, hoje
 }
+
+// BoundedTables têm tamanho limitado: seen é podada pelo cursor e as
+// contagens diárias de termos e marcas pela retenção (storage.keep_term_weeks).
+var BoundedTables = map[string]bool{"seen": true, "daily_terms": true, "daily_brands": true}
 
 // RateDays é a janela da taxa de candidatos no stats.
 const RateDays = 30
@@ -120,13 +128,27 @@ func CollectStats(ctx context.Context, db *sql.DB, path string, now time.Time) (
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+	sizes, err := TableSizes(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	var growing int64
 	for _, t := range tables {
 		var n int64
 		// O nome vem do sqlite_master, não do usuário.
 		if err := db.QueryRowContext(ctx, fmt.Sprintf(`SELECT count(*) FROM %q`, t)).Scan(&n); err != nil {
 			return nil, err
 		}
-		s.Tables = append(s.Tables, TableCount{Table: t, Rows: n})
+		s.Tables = append(s.Tables, TableCount{Table: t, Rows: n, Bytes: sizes[t]})
+		switch {
+		case BoundedTables[t]:
+			s.BoundedBytes += sizes[t]
+			if t != "seen" {
+				s.TermBytes += sizes[t]
+			}
+		case n > 0:
+			growing += sizes[t]
+		}
 	}
 
 	if s.LastRuns, err = lastRuns(ctx, db); err != nil {
@@ -147,13 +169,7 @@ func CollectStats(ctx context.Context, db *sql.DB, path string, now time.Time) (
 		f, _ := time.Parse("2006-01-02", first.String)
 		l, _ := time.Parse("2006-01-02", last.String)
 		s.DataDays = int(l.Sub(f).Hours()/24) + 1
-		// Desconta o esquema vazio: cada tabela e índice ocupa ao menos uma página.
-		var btrees int64
-		if err := db.QueryRowContext(ctx, `SELECT count(*) FROM sqlite_master WHERE rootpage > 0`).Scan(&btrees); err != nil {
-			return nil, err
-		}
-		data := max(s.PageBytes-btrees*pageSize, 0)
-		s.MonthlyGrowth = data * 30 / int64(s.DataDays)
+		s.MonthlyGrowth = growing * 30 / int64(s.DataDays)
 	}
 
 	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())

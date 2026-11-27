@@ -145,7 +145,7 @@ max_n = 3
 max_per_item = 40
 # Numa execução, termos com menos ocorrências que isso (por dia, fonte, idioma
 # e país) não são gravados. É o que mantém o banco pequeno; suba se crescer demais.
-min_count = 2
+min_count = 3
 
 # ---------------------------------------------------------------------------
 # Coleta (design, seção 5.1)
@@ -162,6 +162,20 @@ overlap_minutes = 60
 # daqui uma fonte que você não usa (ex.: sem credenciais do Bluesky), senão
 # ela gera um alerta de falha por dia.
 sources = ["hn", "bsky", "gh"]
+
+# ---------------------------------------------------------------------------
+# Armazenamento (meta do design: banco < 200 MB/ano)
+# ---------------------------------------------------------------------------
+# Aplicado depois de cada coleta, inclusive ao que já está no banco.
+[storage]
+# Candidatos com texto guardado, por fonte e por dia (os de maior pain_score).
+# A IA usa no máximo ai.max_items por semana; os demais candidatos continuam
+# contados nas agregações (taxa de candidatos, relatório), só sem o texto.
+max_candidates_per_day = 100
+# Caracteres de texto guardados por candidato (a IA usa ai.item_chars).
+max_text_chars = 1200
+# Semanas de contagens diárias de termos e marcas mantidas (a tendência usa 5).
+keep_term_weeks = 8
 
 # ---------------------------------------------------------------------------
 # Alertas pelo Telegram ("ideias check", design 5.7)

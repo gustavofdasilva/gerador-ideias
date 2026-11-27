@@ -271,9 +271,13 @@ func (a *App) printStats(e *env, s *db.Stats) {
 		return
 	}
 
-	fmt.Fprintln(w, "\nLinhas por tabela:")
+	fmt.Fprintln(w, "\nTabelas (linhas · espaço com índices):")
 	for _, t := range s.Tables {
-		fmt.Fprintf(w, "  %-14s %10s\n", t.Table, fmtx.Int(t.Rows))
+		mark := ""
+		if db.BoundedTables[t.Table] {
+			mark = "  (com teto)"
+		}
+		fmt.Fprintf(w, "  %-14s %10s · %9s%s\n", t.Table, fmtx.Int(t.Rows), fmtx.Bytes(t.Bytes), mark)
 	}
 
 	fmt.Fprintln(w, "\nItens processados por fonte (histórico inteiro):")
@@ -292,9 +296,14 @@ func (a *App) printStats(e *env, s *db.Stats) {
 		}
 	}
 	if s.DataDays > 0 {
-		yearly := s.MonthlyGrowth * 12
-		fmt.Fprintf(w, "\nCrescimento estimado: %s/mês (%s/ano; meta < 200 MiB/ano) · base: %d dia(s) de posts\n",
-			fmtx.Bytes(s.MonthlyGrowth), fmtx.Bytes(yearly), s.DataDays)
+		// Tabelas com teto: seen fica como está; termos e marcas crescem até
+		// completar a retenção e param.
+		keepDays := 7 * e.cfg.Storage.KeepTermWeeks
+		ceiling := s.BoundedBytes - s.TermBytes + s.TermBytes*int64(max(keepDays, s.DataDays))/int64(s.DataDays)
+		yearly := s.MonthlyGrowth*12 + ceiling
+		fmt.Fprintf(w, "\nCrescimento estimado: %s/mês nas tabelas que crescem sempre + teto de ~%s nas com retenção\n",
+			fmtx.Bytes(s.MonthlyGrowth), fmtx.Bytes(ceiling))
+		fmt.Fprintf(w, "  em 1 ano: ~%s (meta < 200 MiB) · base: %d dia(s) de posts\n", fmtx.Bytes(yearly), s.DataDays)
 		if s.DataDays < 7 {
 			fmt.Fprintln(w, "  (estimativa grosseira: menos de 7 dias de dados)")
 		}

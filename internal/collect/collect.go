@@ -56,6 +56,8 @@ type Runner struct {
 	Overlap time.Duration
 	// MinTermCount: termos com menos ocorrências na execução não são gravados.
 	MinTermCount int
+	// MaxTextChars: texto guardado por candidato (0 = o teto do banco).
+	MaxTextChars int
 }
 
 // Result resume uma execução.
@@ -128,6 +130,7 @@ func (r *Runner) Run(ctx context.Context, c Collector) (*Result, error) {
 			var cand *db.Candidate
 			if pr.Candidate {
 				it.Brands = pr.Brands
+				it.Text = process.StorageText(it.Text, r.MaxTextChars)
 				cand = &db.Candidate{Item: it, Lang: pr.Lang, Country: pr.Country, PainScore: pr.Score, Signals: pr.Signals}
 				res.Candidates++
 			}

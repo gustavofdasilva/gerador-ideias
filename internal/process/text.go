@@ -180,3 +180,14 @@ func DetectLang(raw string, toks []Token, allowed []string) string {
 	}
 	return best
 }
+
+// StorageText prepara o texto de um candidato para guardar: sem blocos de
+// código (comuns e longos em issues), espaços juntados e no máximo n caracteres.
+func StorageText(s string, n int) string {
+	s = reCodeFence.ReplaceAllString(s, " [código] ")
+	s = strings.Join(strings.Fields(s), " ")
+	if rs := []rune(s); n > 0 && len(rs) > n {
+		return string(rs[:n]) + "…"
+	}
+	return s
+}

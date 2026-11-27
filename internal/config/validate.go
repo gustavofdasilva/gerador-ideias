@@ -70,8 +70,8 @@ func (v *validator) pain() {
 			v.add("pain.weights.%s precisa ser maior que zero", typ)
 		}
 	}
+	// Frases, exclusões e padrões de idiomas fora de languages são ignorados.
 	for _, lang := range sortedKeys(p.Phrases) {
-		v.langEnabled("pain.phrases."+lang, lang)
 		for _, typ := range sortedKeys(p.Phrases[lang]) {
 			v.hasWeight("pain.phrases."+lang+"."+typ, typ)
 		}
@@ -81,17 +81,12 @@ func (v *validator) pain() {
 			v.add("idioma %q sem frases de dor em pain.phrases.%s", lang, lang)
 		}
 	}
-	for _, typ := range p.BrandRequired {
-		v.hasWeight("pain.brand_required", typ)
-	}
-	for _, lang := range sortedKeys(p.Exclude) {
-		v.langEnabled("pain.exclude."+lang, lang)
-	}
+	// brand_required com um tipo que não existe em pain.weights não faz nada
+	// (acontece quando o config redefine os pesos e herda brand_required).
 }
 
 func (v *validator) brands() {
 	for _, lang := range sortedKeys(v.c.Brands.Patterns) {
-		v.langEnabled("brands.patterns."+lang, lang)
 		for _, p := range v.c.Brands.Patterns[lang] {
 			before, after, ok := strings.Cut(p, BrandPlaceholder)
 			switch {
@@ -187,6 +182,14 @@ func (v *validator) collect() {
 	v.atLeastOne("alerts.failing_days", a.FailingDays)
 	v.atLeastOne("alerts.stale_hours", a.StaleHours)
 	v.atLeastOne("alerts.repeat_hours", a.RepeatHours)
+	st := v.c.Storage
+	v.atLeastOne("storage.max_candidates_per_day", st.MaxCandidatesPerDay)
+	if st.MaxTextChars < 200 {
+		v.add("storage.max_text_chars precisa ser pelo menos 200")
+	}
+	if st.KeepTermWeeks < 5 {
+		v.add("storage.keep_term_weeks precisa ser pelo menos 5 (a tendência usa a semana + as 4 anteriores)")
+	}
 	if v.c.Backup.Dir != "" {
 		v.atLeastOne("backup.keep", v.c.Backup.Keep)
 	}
@@ -198,13 +201,9 @@ func (v *validator) sources() {
 		name  string
 		langs []string
 	}{{"hn", s.HN.Languages}, {"bsky", s.Bsky.Languages}, {"gh", s.GH.Languages}} {
+		// Idiomas fora de languages já foram descartados no normalize.
 		if len(src.langs) == 0 {
-			v.add("sources.%s.languages vazio", src.name)
-		}
-		for _, l := range src.langs {
-			if !v.enabled[l] {
-				v.add("sources.%s.languages: idioma %q fora de languages", src.name, l)
-			}
+			v.add("sources.%s.languages sem nenhum idioma de languages", src.name)
 		}
 	}
 	for _, l := range s.GH.Labels {
@@ -214,18 +213,8 @@ func (v *validator) sources() {
 	}
 }
 
-func (v *validator) langEnabled(where, lang string) {
-	if !v.enabled[lang] {
-		v.add("%s: idioma fora de languages", where)
-	}
-}
-
 func (v *validator) hasWeight(where, typ string) {
 	if _, ok := v.c.Pain.Weights[typ]; !ok {
-		if where == "pain.brand_required" {
-			v.add("%s: tipo %q sem peso em pain.weights", where, typ)
-			return
-		}
 		v.add("%s: tipo sem peso em pain.weights", where)
 	}
 }

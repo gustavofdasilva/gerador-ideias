@@ -35,6 +35,10 @@ db_path = "x.db"
 languages = ["en"]
 [pain]
 min_score = 1.0
+[storage]
+max_candidates_per_day = 100
+max_text_chars = 1200
+keep_term_weeks = 8
 [alerts]
 failing_days = 2
 stale_hours = 48
@@ -140,9 +144,6 @@ func TestParseErrors(t *testing.T) {
 		{"tipo sem peso", func(s string) string {
 			return strings.Replace(s, `request = ["  Is`, `payment = ["x"]`+"\n"+`request = ["  Is`, 1)
 		}, "pain.phrases.en.payment: tipo sem peso"},
-		{"frases de idioma desabilitado", func(s string) string {
-			return s + "\n[pain.phrases.pt]\nrequest = [\"tem algum app\"]\n"
-		}, "pain.phrases.pt: idioma fora de languages"},
 		{"chave desconhecida", func(s string) string {
 			return "dbpath = \"y\"\n" + s
 		}, "chaves desconhecidas: dbpath"},
@@ -151,7 +152,7 @@ func TestParseErrors(t *testing.T) {
 		}, "weekly_token_limit"},
 		{"hn com idioma desabilitado", func(s string) string {
 			return strings.Replace(s, `languages = ["EN"]`, `languages = ["pt"]`, 1)
-		}, `sources.hn.languages: idioma "pt" fora de languages`},
+		}, "sources.hn.languages sem nenhum idioma de languages"},
 		{"lookback zero", func(s string) string {
 			return strings.Replace(s, "initial_lookback_days = 7", "initial_lookback_days = 0", 1)
 		}, "initial_lookback_days"},
@@ -228,5 +229,41 @@ func TestExpandHome(t *testing.T) {
 	}
 	if got, _ := ExpandHome("/abs/x.db"); got != "/abs/x.db" {
 		t.Errorf("caminho absoluto alterado: %q", got)
+	}
+}
+
+func TestDisabledLanguageTablesAreIgnored(t *testing.T) {
+	src := minimal + "\n[pain.phrases.pt]\nrequest = [\"tem algum app\"]\n[brands.patterns]\npt = [\"alternativa ao {marca}\"]\n"
+	if _, err := Parse([]byte(src)); err != nil {
+		t.Fatalf("idioma desligado deveria ser ignorado: %v", err)
+	}
+}
+
+// Um config.toml antigo, sem as seções que versões novas acrescentam,
+// continua valendo: o que falta vem do config.example.toml embutido.
+func TestOldConfigGetsDefaults(t *testing.T) {
+	old := strings.NewReplacer(
+		"[storage]\nmax_candidates_per_day = 100\nmax_text_chars = 1200\nkeep_term_weeks = 8\n", "",
+		"[alerts]\nfailing_days = 2\nstale_hours = 48\nrepeat_hours = 24\n", "",
+	).Replace(minimal)
+	if strings.Contains(old, "[storage]") {
+		t.Fatal("o teste não removeu [storage]")
+	}
+	if _, err := Parse([]byte(old)); err == nil {
+		t.Fatal("sem padrões, o config antigo deveria falhar")
+	}
+	cfg, err := ParseOverDefaults([]byte(old))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Storage.MaxCandidatesPerDay != 100 || cfg.Alerts.StaleHours != 48 {
+		t.Errorf("padrões não aplicados: %+v %+v", cfg.Storage, cfg.Alerts)
+	}
+	// O que o arquivo define vale; tabelas por idioma substituem as do padrão.
+	if cfg.DBPath != "x.db" || len(cfg.Languages) != 1 {
+		t.Errorf("valores do arquivo perdidos: %q %v", cfg.DBPath, cfg.Languages)
+	}
+	if len(cfg.Pain.Phrases) != 1 || len(cfg.Pain.Weights) != 1 {
+		t.Errorf("frases/pesos somados aos padrões: %v %v", cfg.Pain.Phrases, cfg.Pain.Weights)
 	}
 }

@@ -249,3 +249,13 @@ func TestFalsePositivesFromRealSample(t *testing.T) {
 		}
 	}
 }
+
+func TestStorageText(t *testing.T) {
+	in := "Feature request:\n\n```\nlong stack trace\nline 2\n```\n\n  please   add   export  "
+	if got := StorageText(in, 1000); got != "Feature request: [código] please add export" {
+		t.Errorf("got %q", got)
+	}
+	if got := StorageText("ação "+strings.Repeat("x", 50), 10); got != "ação xxxxx…" {
+		t.Errorf("corte: %q", got)
+	}
+}

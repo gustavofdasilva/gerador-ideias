@@ -95,6 +95,7 @@ func (a *App) collect(ctx context.Context, args []string) error {
 		InitialLookback: e.cfg.Collect.InitialLookback(),
 		Overlap:         e.cfg.Collect.Overlap(),
 		MinTermCount:    e.cfg.Keywords.MinCount,
+		MaxTextChars:    e.cfg.Storage.MaxTextChars,
 	}
 
 	var errs []error
@@ -120,6 +121,17 @@ func (a *App) collect(ctx context.Context, args []string) error {
 	}
 	if ran == 0 {
 		return errNotImplemented
+	}
+	// Aplica os limites de armazenamento (inclusive ao que já estava no banco).
+	st := e.cfg.Storage
+	cr, err := db.Compact(context.WithoutCancel(ctx), conn, db.CompactOptions{
+		MaxCandidatesPerDay: st.MaxCandidatesPerDay, MaxTextChars: st.MaxTextChars,
+		KeepTermWeeks: st.KeepTermWeeks, Now: a.Now(),
+	})
+	if err != nil {
+		errs = append(errs, fmt.Errorf("compactação: %w", err))
+	} else if s := cr.Summary(); s != "" {
+		fmt.Fprintln(a.Stdout, s)
 	}
 	return errors.Join(errs...)
 }
